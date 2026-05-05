@@ -12,4 +12,4 @@ Alberto Garcia-Ortiz, Head of Chair for Microelectronics at the University of Br
 
 ## Guidance and Assistance
 
-Sebastian Fischer, Scientific Assistant 
+Sebastian Fischer, Scientific Assistant/Ph.D. Candidate
