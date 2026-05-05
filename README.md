@@ -8,8 +8,8 @@ The purpose of this project is to create a fully functional Systolic Array (**SA
 
 ## Supervisor
 
-Professor Alberto Garcia-Ortiz
+Alberto Garcia-Ortiz, Head of Chair for Microelectronics at the University of Bremen 
 
 ## Guidance and Assistance
 
-Scientific Assistant Sebastian Fischer
+Sebastian Fischer, Scientific Assistant 
