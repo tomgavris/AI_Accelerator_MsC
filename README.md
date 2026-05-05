@@ -1,6 +1,6 @@
 # Systolic Array
 
- This prject details the creation of a Systolic Array (**SA**), which will be used in a Artificial Intelligence (**AI**) accelerator for the purposes of my intersnhip at the Universität Bremen.
+ This prject details the creation of a Systolic Array (**SA**), which will be used in a Artificial Intelligence (**AI**) accelerator for the purposes of my intersnhip at "Universität Bremen".
 
 ## Description
 
