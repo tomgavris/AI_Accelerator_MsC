@@ -1,40 +1,34 @@
 localparam DATA_WIDTH = 8;
-localparam M_SIZE = 4;
 
-module p_e(
-    input logic [DATA_WIDTH-1:0] a_i,
-    input logic [DATA_WIDTH-1:0] b_i, 
-    input logic clk, enable, rst,
-    output logic [DATA_WIDTH-1:0] a_o, b_o, res,
-    output logic valid_output
+module pe_ws(
+    input logic [DATA_WIDTH-1:0]  a_i,
+    input logic [DATA_WIDTH-1:0]  w_i, parsum_i, //parsum_i = partial sum output
+    input logic                   clk, wr_e, comp_e, rst, //wr_e = write enable, comp_e = compute enable
+    output logic [DATA_WIDTH-1:0] a_o, parsum_o, //a_o = activation output, parsum_o = partial sum output 
+    output logic                  valid_wr // valid_wr = valid write 
 );
 
-logic [2*DATA_WIDTH-1:0] acc = '0;
-logic [1:0] count = 0;
+logic [2*DATA_WIDTH-1:0] acc, acc_next;
+logic [DATA_WIDTH-1:0] weight;
 
-always_ff @(posedge clk) begin
-    if(rst) begin 
-        count <= '0;
-        acc <= '0;
-        res <= '0;
-        valid_output <= 0;
-    end else begin
-    if(enable) begin
-        if(count == (M_SIZE-1) )begin
-            res <= (acc + a_i * b_i) >> 8;
-            count <= '0;
-            valid_output <= 1;
-            acc <= '0;
-        end else begin
-            acc <= acc + a_i*b_i;
-            count <= count +1;
-            valid_output <= 0;
-        end
-        a_o <= a_i;
-        b_o <= b_i;
-        
+
+always_ff @( posedge clk ) begin 
+    if(rst) begin
+        weight <= '0;
+        valid_wr <= 0;
+        parsum_o <= '0;
+        a_o <= '0;
     end
-end
+    else if(comp_e) begin
+       parsum_o <= acc_next >> 8;
+       a_o <= a_i; 
+       valid_wr <= 0;
+    end else if(wr_e) begin
+        weight <= w_i;
+        valid_wr <= 1;
+    end
 end 
-    
+
+assign acc_next = parsum_i + a_i*weight;
+
 endmodule
