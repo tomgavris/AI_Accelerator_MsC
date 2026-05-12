@@ -4,11 +4,11 @@ module pe_ws(
     input logic [DATA_WIDTH-1:0]  a_i,
     input logic [DATA_WIDTH-1:0]  w_i, parsum_i, //parsum_i = partial sum output
     input logic                   clk, wr_e, comp_e, rst, //wr_e = write enable, comp_e = compute enable
-    output logic [DATA_WIDTH-1:0] a_o, parsum_o, //a_o = activation output, parsum_o = partial sum output 
+    output logic [DATA_WIDTH-1:0] a_o, w_o, parsum_o, //a_o = activation output, parsum_o = partial sum output 
     output logic                  valid_wr // valid_wr = valid write 
 );
 
-logic [2*DATA_WIDTH-1:0] acc, acc_next;
+logic [2*DATA_WIDTH-1:0] acc_next;
 logic [DATA_WIDTH-1:0] weight;
 
 
@@ -24,6 +24,7 @@ always_ff @( posedge clk ) begin
        a_o <= a_i; 
        valid_wr <= 0;
     end else if(wr_e) begin
+        w_o <= weight;
         weight <= w_i;
         valid_wr <= 1;
     end
