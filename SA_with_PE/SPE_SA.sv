@@ -1,7 +1,7 @@
-localparam DATA_WIDTH = 8;
-localparam GRID_LEN = 4;
-
-module SPE_SA (
+module SPE_SA #(
+    parameter DATA_WIDTH = 8,
+    parameter GRID_LEN = 4
+)(
     input logic  [GRID_LEN-1:0][DATA_WIDTH-1:0]  top_w_i, top_a_i, top_p_i,
     input logic                                  top_clk, top_rst, comp_top, top_wr,
     input logic  [GRID_LEN-1:0]                  top_e_i,
