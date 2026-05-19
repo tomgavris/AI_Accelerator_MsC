@@ -5,7 +5,7 @@ module DP(
     input  logic signed [OP-1:0][DATA_WIDTH-1:0]  a_i,
     input  logic signed [OP-1:0][DATA_WIDTH-1:0]  w_i, 
     input  logic signed [2*DATA_WIDTH-1:0]        parsum_i, //parsum_i = partial sum output
-    input  logic                                  comp_e, //wr_e = write enable, comp_e = compute enable
+    input  logic                                  comp_e, //comp_e = compute enable
     output logic signed [OP-1:0][DATA_WIDTH-1:0]  a_o, 
     output logic signed [2*DATA_WIDTH-1:0]        parsum_o //a_o = activation output, parsum_o = partial sum output 
 );
