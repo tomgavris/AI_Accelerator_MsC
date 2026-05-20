@@ -1,7 +1,8 @@
 module DPPE #(
     parameter DATA_WIDTH = 8,
     parameter OP = 2,
-    parameter N = 2 // Number of DP2s NxN
+    parameter N = 2, // Number of DP2s NxN
+    parameter IS_LAST = 0 
 ) ( 
     // mid refers to the middle level the module sits at
     input  logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_i, //mid_a_i = activaiton inputs
@@ -17,8 +18,8 @@ logic signed [N:0][N:0][2*DATA_WIDTH-1:0]            p_wires;
 logic signed [N:0][N:0][OP-1:0][DATA_WIDTH-1:0]      a_wires;
 logic        [N-1:0][N-1:0]                          en_wires;
 logic        [N-1:0][N-1:0]                          comp_wire;
-logic        [N-1:0][OP-1:0]                         act_reg;
-logic        [N-1:0]                                 p_reg;
+logic        [N-1:0][OP-1:0][DATA_WIDTH-1:0]         act_reg;
+logic        [N-1:0][2*DATA_WIDTH-1:0]               p_reg;
 
 always_ff @( posedge clk ) begin 
     if (rst) begin
@@ -56,20 +57,38 @@ end
 
 genvar i, j, k;
 generate
-    for (i = 0; i< N ; i++) begin
-        for (j = 0; j< OP; j++) begin
-            //assigning inputs
-            assign a_wires[i][0][j] = mid_a_i[i][j];
-            assign mid_a_o[i][j] = act_reg[i][j];
+    if(IS_LAST) begin // on the last module of the grid don't use boundary registers
+        for (i = 0; i< N ; i++) begin
+            for (j = 0; j< OP; j++) begin
+                
+                assign a_wires[i][0][j] = mid_a_i[i][j];
+                assign mid_a_o[i][j] = a_wires[i][N][j];
+            end
+        end
+    end else begin
+        for (i = 0; i< N ; i++) begin
+            for (j = 0; j< OP; j++) begin
+                
+                assign a_wires[i][0][j] = mid_a_i[i][j];
+                assign mid_a_o[i][j] = act_reg[i][j];
+            end
         end
     end
+    
 endgenerate
 
 generate
+    if(IS_LAST) begin // on the last module of the grid don't use boundary registers
+        for (i = 0; i< N ; i++) begin
+                assign p_wires[0][i] = mid_p_i[i];
+                assign mid_parsum_o[i] = p_wires[N][i];
+        end
+    end else begin
         for (i = 0; i< N ; i++) begin
             assign p_wires[0][i] = mid_p_i[i];
             assign mid_parsum_o[i] = p_reg[i];
         end
+    end 
 endgenerate
 
 generate
