@@ -17,6 +17,8 @@ logic signed [N:0][N:0][2*DATA_WIDTH-1:0]            p_wires;
 logic signed [N:0][N:0][OP-1:0][DATA_WIDTH-1:0]      a_wires;
 logic        [N-1:0][N-1:0]                          en_wires;
 logic        [N-1:0][N-1:0]                          comp_wire;
+logic        [N-1:0][OP-1:0]                         act_reg;
+logic        [N-1:0]                                 p_reg;
 
 always_ff @( posedge clk ) begin 
     if (rst) begin
@@ -25,11 +27,28 @@ always_ff @( posedge clk ) begin
                 weight_reg[i][j] <= '0; 
             end
         end
+        for (int i = 0 ; i < N ; i++) begin
+            for (int j = 0; j < OP ; j++) begin
+                act_reg[i][j] <= '0; 
+            end
+        end
+        for (int i = 0 ; i < N ; i++) begin
+                p_reg[i] <= '0; 
+        end
     end else if (mid_wr_e) begin
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
                 weight_reg[i][j] <= mid_w_i[i][j];
             end
+        end
+    end else if(comp_e) begin
+        for (int i = 0 ; i < N ; i++) begin
+            for (int j = 0; j < OP ; j++) begin
+                act_reg[i][j] <= a_wires[i][N][j]; 
+            end
+        end
+        for (int i = 0 ; i < N ; i++) begin
+                p_reg[i] <= p_wires[N][i]; 
         end
     end
 end
@@ -41,7 +60,6 @@ generate
         for (j = 0; j< OP; j++) begin
             //assigning inputs
             assign a_wires[i][0][j] = mid_a_i[i][j];
-            assign mid_a_o[i][j] = a_wires[i][N][j];
             
         end
     end
@@ -50,9 +68,9 @@ endgenerate
 generate
         for (i = 0; i< N ; i++) begin
             assign p_wires[0][i] = mid_p_i[i];
-            assign mid_parsum_o[i] = p_wires[N][i];
         end
 endgenerate
+
 generate
         for (i = 0; i< N ; i++) begin
             for (j = 0; j< N; j++) begin
