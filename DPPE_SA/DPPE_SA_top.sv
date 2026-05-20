@@ -1,10 +1,6 @@
-localparam N = 2;
-localparam OP = 2;
-localparam DATA_WIDTH = 8;
+import pe_pkg::*;
 
-module SA_top #(
-    parameter M = 2 // M defines the number of DPPEs inside the top level module
-)(
+module SA_top (
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                top_a_i,
     input  logic signed [M-1:0][N-1:0][2*DATA_WIDTH-1:0]                      top_p_i,
     input  logic                                                              top_clk, top_rst, top_wr_e, top_comp_e,

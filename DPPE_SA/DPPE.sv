@@ -1,7 +1,6 @@
+import pe_pkg::*;
+
 module DPPE #(
-    parameter DATA_WIDTH = 8,
-    parameter OP = 2,
-    parameter N = 2, // Number of DP2s NxN
     parameter IS_LAST_X = 0, 
     parameter IS_LAST_Y = 0, 
     parameter IS_LAST_ALL = 0 
