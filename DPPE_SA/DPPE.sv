@@ -60,7 +60,7 @@ generate
         for (j = 0; j< OP; j++) begin
             //assigning inputs
             assign a_wires[i][0][j] = mid_a_i[i][j];
-            
+            assign mid_a_o[i][j] = act_reg[i][j];
         end
     end
 endgenerate
@@ -68,6 +68,7 @@ endgenerate
 generate
         for (i = 0; i< N ; i++) begin
             assign p_wires[0][i] = mid_p_i[i];
+            assign mid_parsum_o[i] = p_reg[i];
         end
 endgenerate
 
