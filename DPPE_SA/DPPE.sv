@@ -9,7 +9,9 @@ module DPPE #(
     input  logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_i, //mid_a_i = activaiton inputs
     input  logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  mid_w_i, //mid_w_i = weight inputs
     input  logic signed [N-1:0][2*DATA_WIDTH-1:0]               mid_p_i, //mid_p_i = partial sum inputs
-    input  logic                                                clk, rst, mid_wr_e, comp_e, //mid_we_i = write enable, comp_e = compute enable
+    input  logic                                                clk, rst, mid_wr_e, comp_e_i, //mid_we_i = write enable, comp_e = compute enable
+    output logic                                                wr_e_o, comp_e_o, // wr_e_o = write enable out
+    output logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  mid_w_o,  //mid_w_i = weight outputs
     output logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_o, // activation output
     output logic signed [N-1:0][2*DATA_WIDTH-1:0]               mid_parsum_o // parsum_o = partial sum output 
 );
@@ -24,6 +26,7 @@ logic signed [N-1:0][2*DATA_WIDTH-1:0]               p_reg;
 
 always_ff @( posedge clk ) begin 
     if (rst) begin
+        wr_e_o <= 0;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
                 weight_reg[i][j] <= '0; 
@@ -38,12 +41,16 @@ always_ff @( posedge clk ) begin
                 p_reg[i] <= '0; 
         end
     end else if (mid_wr_e) begin
+        wr_e_o <= 1;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
+                mid_w_o[i][j] <= weight_reg[i][j];
                 weight_reg[i][j] <= mid_w_i[i][j];
             end
         end
     end else if(comp_e) begin
+        wr_e_o   <= 0;
+        comp_e_o <= 1;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < OP ; j++) begin
                 act_reg[i][j] <= a_wires[i][N][j]; 
