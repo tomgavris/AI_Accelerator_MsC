@@ -44,11 +44,13 @@ always_ff @( posedge clk ) begin
         wr_e_o <= 1;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
-                mid_w_o[i][j] <= weight_reg[i][j];
-                weight_reg[i][j] <= mid_w_i[i][j];
+                for (int k = 0; k < OP; k++) begin
+                    weight_reg[i][j][k] <= mid_w_i[i][j][k];
+                    mid_w_o[i][j][k] <= weight_reg[i][j][k];
+                end
             end
         end
-    end else if(comp_e) begin
+    end else if(comp_e_i) begin
         wr_e_o   <= 0;
         comp_e_o <= 1;
         for (int i = 0 ; i < N ; i++) begin
@@ -103,7 +105,7 @@ generate
         for (i = 0; i< N ; i++) begin
             for (j = 0; j< N; j++) begin
                 assign en_wires[i][j] = mid_wr_e;
-                assign comp_wire[i][j] = comp_e; 
+                assign comp_wire[i][j] = comp_e_i; 
             end
         end
 endgenerate
