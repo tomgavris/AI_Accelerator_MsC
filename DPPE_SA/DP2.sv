@@ -1,16 +1,15 @@
-localparam DATA_WIDTH = 8;
-localparam OP = 2; // OP = operands
+import pe_pkg::*;
 
 module DP(
     input  logic signed [OP-1:0][DATA_WIDTH-1:0]  a_i,
     input  logic signed [OP-1:0][DATA_WIDTH-1:0]  w_i, 
-    input  logic signed [2*DATA_WIDTH-1:0]        parsum_i, //parsum_i = partial sum output
+    input  logic signed [P_DATA_WIDTH-1:0]        parsum_i, //parsum_i = partial sum output
     input  logic                                  comp_e, //comp_e = compute enable
     output logic signed [OP-1:0][DATA_WIDTH-1:0]  a_o, 
-    output logic signed [2*DATA_WIDTH-1:0]        parsum_o //a_o = activation output, parsum_o = partial sum output 
+    output logic signed [P_DATA_WIDTH-1:0]        parsum_o //a_o = activation output, parsum_o = partial sum output 
 );
 
-logic signed [2*DATA_WIDTH-1:0] temp;
+logic signed [P_DATA_WIDTH-1:0] temp;
 
 always_comb begin 
     if (comp_e == 1) begin

@@ -5,28 +5,28 @@ module DPPE #(
     parameter IS_LAST_Y = 0, 
     parameter IS_LAST_ALL = 0 
 ) ( 
-    // mid refers to the middle level the module sits at
-    input  logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_i, //mid_a_i = activaiton inputs
-    input  logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  mid_w_i, //mid_w_i = weight inputs
-    input  logic signed [N-1:0][2*DATA_WIDTH-1:0]               mid_p_i, //mid_p_i = partial sum inputs
-    input  logic                                                clk, rst, mid_wr_e, comp_e_i, //mid_we_i = write enable, comp_e = compute enable
-    output logic                                                wr_e_o, comp_e_o, // wr_e_o = write enable out
-    output logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  mid_w_o,  //mid_w_i = weight outputs
-    output logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_o, // activation output
-    output logic signed [N-1:0][2*DATA_WIDTH-1:0]               mid_parsum_o // parsum_o = partial sum output 
+    
+    input  logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         dppe_a_i, //dppe_a_i = activaiton inputs
+    input  logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  dppe_w_i, //dppe_w_i = weight inputs
+    input  logic signed [N-1:0][P_DATA_WIDTH-1:0]               dppe_p_i, //dppe_p_i = partial sum inputs
+    input  logic                                                clk, rst, dppe_wr_e, comp_e_i, //dppe_we_i = write enable, comp_e = compute enable
+    output logic                                                dppe_wr_e_o, comp_e_o, // dppe_wr_e_o = write enable out
+    output logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  dppe_w_o,  //dppe_w_i = weight outputs
+    output logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         dppe_a_o, // activation output
+    output logic signed [N-1:0][P_DATA_WIDTH-1:0]               dppe_parsum_o // parsum_o = partial sum output 
 );
 
 logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  weight_reg;
-logic signed [N:0][N:0][2*DATA_WIDTH-1:0]            p_wires; 
+logic signed [N:0][N:0][P_DATA_WIDTH-1:0]            p_wires; 
 logic signed [N:0][N:0][OP-1:0][DATA_WIDTH-1:0]      a_wires;
 logic        [N-1:0][N-1:0]                          en_wires;
 logic        [N-1:0][N-1:0]                          comp_wire;
 logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         act_reg;
-logic signed [N-1:0][2*DATA_WIDTH-1:0]               p_reg;
+logic signed [N-1:0][P_DATA_WIDTH-1:0]               p_reg;
 
 always_ff @( posedge clk ) begin 
     if (rst) begin
-        wr_e_o <= 0;
+        dppe_wr_e_o <= 0;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
                 weight_reg[i][j] <= '0; 
@@ -40,18 +40,18 @@ always_ff @( posedge clk ) begin
         for (int i = 0 ; i < N ; i++) begin
                 p_reg[i] <= '0; 
         end
-    end else if (mid_wr_e) begin
-        wr_e_o <= 1;
+    end else if (dppe_wr_e) begin
+        dppe_wr_e_o <= 1;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
                 for (int k = 0; k < OP; k++) begin
-                    weight_reg[i][j][k] <= mid_w_i[i][j][k];
-                    mid_w_o[i][j][k] <= weight_reg[i][j][k];
+                    weight_reg[i][j][k] <= dppe_w_i[i][j][k];
+                    dppe_w_o[i][j][k] <= weight_reg[i][j][k];
                 end
             end
         end
     end else if(comp_e_i) begin
-        wr_e_o   <= 0;
+        dppe_wr_e_o   <= 0;
         comp_e_o <= 1;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < OP ; j++) begin
@@ -71,16 +71,16 @@ generate
         for (i = 0; i< N ; i++) begin
             for (j = 0; j< OP; j++) begin
                 
-                assign a_wires[i][0][j] = mid_a_i[i][j];
-                assign mid_a_o[i][j] = a_wires[i][N][j];
+                assign a_wires[i][0][j] = dppe_a_i[i][j];
+                assign dppe_a_o[i][j] = a_wires[i][N][j];
             end
         end
     end else begin
         for (i = 0; i< N ; i++) begin
             for (j = 0; j< OP; j++) begin
                 
-                assign a_wires[i][0][j] = mid_a_i[i][j];
-                assign mid_a_o[i][j] = act_reg[i][j];
+                assign a_wires[i][0][j] = dppe_a_i[i][j];
+                assign dppe_a_o[i][j] = act_reg[i][j];
             end
         end
     end
@@ -90,13 +90,13 @@ endgenerate
 generate
     if(IS_LAST_Y || IS_LAST_ALL) begin // on the last module of the grid don't use boundary registers
         for (i = 0; i< N ; i++) begin
-                assign p_wires[0][i] = mid_p_i[i];
-                assign mid_parsum_o[i] = p_wires[N][i];
+                assign p_wires[0][i] = dppe_p_i[i];
+                assign dppe_parsum_o[i] = p_wires[N][i];
         end
     end else begin
         for (i = 0; i< N ; i++) begin
-            assign p_wires[0][i] = mid_p_i[i];
-            assign mid_parsum_o[i] = p_reg[i];
+            assign p_wires[0][i] = dppe_p_i[i];
+            assign dppe_parsum_o[i] = p_reg[i];
         end
     end 
 endgenerate
@@ -104,7 +104,7 @@ endgenerate
 generate
         for (i = 0; i< N ; i++) begin
             for (j = 0; j< N; j++) begin
-                assign en_wires[i][j] = mid_wr_e;
+                assign en_wires[i][j] = dppe_wr_e;
                 assign comp_wire[i][j] = comp_e_i; 
             end
         end

@@ -2,14 +2,14 @@ import pe_pkg::*;
 
 module SA_top (
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                top_a_i,
-    input  logic signed [M-1:0][N-1:0][2*DATA_WIDTH-1:0]                      top_p_i,
+    input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      top_p_i,
     input  logic                                                              top_clk, top_rst, top_wr_e, top_comp_e,
     input  logic signed [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]         top_w_i,
     output logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                top_a_o,
-    output logic signed [M-1:0][N-1:0][2*DATA_WIDTH-1:0]                      top_parsum_o // logic around the output has to be defined
+    output logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      top_parsum_o // logic around the output has to be defined
 );
     
-    logic signed [M:0][M:0][N-1:0][2*DATA_WIDTH-1:0]                p_wires; 
+    logic signed [M:0][M:0][N-1:0][P_DATA_WIDTH-1:0]                p_wires; 
     logic signed [M:0][M:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]   w_wires; 
     logic signed [M:0][M:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]          a_wires; 
     logic        [M:0][M:0]                                         comp_en_wire, wr_en_wires; 
