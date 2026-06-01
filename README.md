@@ -12,7 +12,7 @@ The Systolic Array being built is currently comprised of the following modules, 
 
 **DP2:** This module is a fully combinational circuit, meant to hanlde just the MAC operations of the SA. Depending on the application and the designer's preference, this module can handle an OP number of operands at once.
 
-**DPPE:** Within this module an NxN number of DP2 modules is instantiated. Every DP2 module is assigned an OP number of weight registers, to store the weight values. This level also handles boundary registers logic, since partial sum and activations registers are required between two consecutive DPPEs. In order to minimize area and cost boundary DPPEs can lack, depending on their position inside the grid, activations or partial sum registers, or even both. 
+**DPPE:** Within this module an NxN number of DP2 modules is instantiated. Every DP2 module is assigned an OP number of weight registers, to store the weight values. This level also handles boundary reggitisters logic, since partial sum and activations registers are required between two consecutive DPPEs. In order to minimize area and cost boundary DPPEs can lack, depending on their position inside the grid, activations or partial sum registers, or even both. 
 
 **DPPE_SA:** This is the level DPPEs are connected together. 
 
