@@ -1,6 +1,6 @@
 import pe_pkg::*;
 
-module SA_sa (
+module DPPE_SA (
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_i,
     input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      sa_p_i,
     input  logic                                                              sa_clk, sa_rst, sa_wr_e, sa_comp_e,
