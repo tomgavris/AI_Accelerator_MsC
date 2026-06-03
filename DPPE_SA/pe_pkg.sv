@@ -4,4 +4,6 @@ package pe_pkg;
     localparam OP = 2;
     localparam N = 2;
     localparam M = 2;
+    localparam CYCLES = 2;
+    localparam W_CYCLES = M;
 endpackage
