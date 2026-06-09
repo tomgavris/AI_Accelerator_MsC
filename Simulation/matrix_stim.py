@@ -4,14 +4,17 @@ import random
 N = 2
 M = 2
 OP = 2
-CYCLES = 2
+CYCLES = 3
 W_CYCLES = M #cycles required for weight loading
 
+# activations and expected partial sums require a temporal dimension (CYCLES) due to the skew
 activ   = np.zeros((CYCLES, M, N, OP), dtype=int)
 weights = np.zeros((W_CYCLES, M, N, N, OP), dtype=int)
-init_parsum = np.zeros((M, N), dtype=int) # inital partial sums
-expected_parsum = np.zeros((CYCLES, M, N), dtype=int) # expected partial sums
+init_parsum = np.zeros((M, N), dtype=int) 
+expected_parsum = np.zeros((CYCLES, M, N), dtype=int) 
 
+
+# loading phase
 for t in range(W_CYCLES):
     for x in range(M):
         for y in range(N):
@@ -34,13 +37,20 @@ for t in range(CYCLES):
     expected_parsum[t] = np.copy(init_parsum)
 
 for t in range(CYCLES):
-    for x in range(M):
-        for y in range(N):
-            for z in range(N):
-                for w in range(OP):
-                    expected_parsum[t][x][y] = expected_parsum[t][x][y] + activ[t][x][z][w]*weights[t][x][y][z][w] 
+    expected_parsum[t] = np.copy(init_parsum)
 
+# calculate the final answer dropping out of the bottom for each batch 't'
+for t in range(CYCLES):
+    for c in range(M):       
+        for r in range(M):   
+            w_t = M - 1 - r
+            for y in range(N):
+                for z in range(N):
+                    for w in range(OP):                        
+                        expected_parsum[t][c][y] = expected_parsum[t][c][y] + activ[t][r][y][w] * weights[w_t][c][y][z][w]
 
+        
+# creating output files for SystemVerilog
 with open("activations.txt", "w") as f:
     for t in range(CYCLES):
         for x in range(M):
