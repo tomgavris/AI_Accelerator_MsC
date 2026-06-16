@@ -18,5 +18,5 @@ package pe_pkg;
     localparam SP_SIZE = 2048; // Scratchpad size
     localparam SRAM_SIZE = SP_SIZE/PARTITIONS;
     localparam CONC_ADD = M/PARTITIONS; // Concurrent addresses read from each partition
-    localparam SRAM_WIDTH = N*OP*DATA_WIDTH;
+    localparam SRAM_WIDTH = CONC_ADD*N*OP*DATA_WIDTH; // One address read for each partition  
 endpackage
