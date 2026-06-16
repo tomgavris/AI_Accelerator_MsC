@@ -1,6 +1,6 @@
 # Systolic Array
 
- This project details the creation of a Systolic Array (**SA**), which will be used in a Artificial Intelligence (**AI**) accelerator for the purposes of my intersnhip at "Universität Bremen".
+This project details the creation of a Systolic Array (**SA**), which will be used in a Artificial Intelligence (**AI**) accelerator for the purposes of my intersnhip at "Universität Bremen".
 
 ## Overview
 
@@ -35,7 +35,7 @@ This is also the level that handles the boundary register logic of the SA. In **
 
 **SRAM:** This is a standard SRAM that takes in SRAM_WIDTH bits and outputs data of the same size.
 
-**Concatenation module:** Despite not being a memory element itself, this module belongs in this file since it find itself in the memory data path. It concatenates the data coming into the accelerator and hands them to the SP, where they are stored.
+**Concatenation module:** Despite not being a memory element itself, this module belongs in this file since its only use is concatenating incoming activation data and feeding them to the SP. 
 
 
 
