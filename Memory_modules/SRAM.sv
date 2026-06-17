@@ -1,6 +1,6 @@
 import pe_pkg::*;
 
-module sram (
+module SRAM (
     input  logic signed [SRAM_WIDTH-1:0] sram_i,
     input  logic                         clk, rst, sram_wr, sram_rd,
     output logic signed [SRAM_WIDTH-1:0] sram_o
