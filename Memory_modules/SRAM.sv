@@ -1,12 +1,12 @@
 import pe_pkg::*;
 
 module single_port_ram
-  ( 	input  logic					            clk, rst,
+  ( 	input  logic					                      clk, rst,
    		input  logic        [$clog2(SRAM_SIZE)-1:0]	addr,
-   		input  logic signed [DATA_WIDTH-1:0]	    sram_i,
-   		input  logic					            wr,
-   		input  logic					            rd, 
-        output logic signed [DATA_WIDTH-1:0]        sram_o
+   		input  logic signed [DATA_WIDTH-1:0]	      sram_i,
+   		input  logic					                      wr,
+   		input  logic					                      rd, 
+        output logic signed [DATA_WIDTH-1:0]      sram_o
   );
 
   logic signed [DATA_WIDTH-1:0] mem [SRAM_SIZE-1:0];
