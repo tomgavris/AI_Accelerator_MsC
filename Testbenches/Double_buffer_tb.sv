@@ -63,7 +63,7 @@ module double_buffer_tb();
                 state <= 0;
                 db_wr_add <= i;
                 db_rd_add <= i;
-                db_i <= i;
+                db_i <= 2*i;
             end
             
             @(posedge clk);
