@@ -45,36 +45,15 @@ module double_buffer (
     // state0 -> write in bank0, read bank1
     // state1 -> write in bank1, read bank0
     always_comb begin 
-        if(!state) begin
-            add_wire[0] = db_wr_add;
-            add_wire[1] = db_rd_add;
-        end
-        else if(state) begin
-            add_wire[0] = db_rd_add;
-            add_wire[1] = db_wr_add;
-        end
-    end 
+        
+        add_wire[0] = state ? db_rd_add : db_wr_add;
+        add_wire[1] = state ? db_wr_add : db_rd_add;
 
-    always_comb begin
-        if(!state) begin
-            wr_wire[0] = 1;
-            wr_wire[1] = 0;
-        end 
-        else if(state) begin
-            wr_wire[0] = 0;
-            wr_wire[1] = 1;
-        end
-    end
+        wr_wire[0]  = state ? 1'b0 : 1'b1;
+        wr_wire[1]  = state ? 1'b1 : 1'b0;
 
-    always_comb begin
-        if(!state) begin
-            rd_wire[0] = 0;
-            rd_wire[1] = 1;
-        end 
-        else if(state) begin
-            rd_wire[0] = 1;
-            rd_wire[1] = 0;
-        end
+        rd_wire[0]  = state ? 1'b1 : 1'b0;
+        rd_wire[1]  = state ? 1'b0 : 1'b1;
     end
     
 endmodule
