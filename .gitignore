@@ -1,0 +1,102 @@
+# ==========================================
+# SystemVerilog & EDA Tool Output
+# ==========================================
+
+# Verilator / C++ Compiled Binaries
+obj_dir/
+*.o
+*.a
+*.exe
+*.out
+
+# Waveform Dumps (These get MASSIVE)
+*.vcd
+*.fsdb
+*.wlf
+*.vpd
+
+# Xilinx Vivado / FPGA Build Junk
+*.jou
+*.log
+*.pb
+*.wdb
+*.dir/
+*.str
+.Xil/
+
+# Synopsys VCS / Mentor Questa Simulation Junk
+csrc/
+simv
+simv.daidir/
+*.mti
+*.mpf
+work/
+
+# ==========================================
+# OS & Text Editor Hidden Files
+# ==========================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Vim / Emacs temporary files
+*~
+*.swp
+*.swo
+
+# bloop and metals
+.bloop
+.bsp
+
+# metals
+project/metals.sbt
+.metals
+
+# vs code
+.vscode
+
+# scala 3
+.tasty
+
+# sbt
+project/project/
+project/target/
+target/
+
+# eclipse
+build/
+.classpath
+.project
+.settings
+.worksheet
+bin/
+.cache
+
+# intellij idea
+*.log
+*.iml
+*.ipr
+*.iws
+.idea
+
+# mac
+.DS_Store
+
+# other?
+.history
+.scala_dependencies
+.cache-main
+
+#general
+*.class
+
+# Chisel elaboration
+output/
+
+# VCD files
+dump.vcd
