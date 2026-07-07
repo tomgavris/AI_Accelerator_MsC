@@ -100,3 +100,12 @@ output/
 
 # VCD files
 dump.vcd
+
+
+# Assets
+
+Simulation/activations.txt 
+Simulation/init_parsum.txt
+Simulation/expected_parsum.txt
+Simulation/weights.txt
+Synthesis/
