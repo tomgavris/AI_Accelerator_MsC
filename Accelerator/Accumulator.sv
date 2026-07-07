@@ -11,7 +11,9 @@ module accumulator(
   logic [$clog2(ACC_SIZE)-1:0]    wr_add_reg;
   logic                           op_reg;
 
-  double_buffer double_buffer_i(
+  double_buffer #(
+    .DB_WIDTH(M*DATA_WIDTH)
+  ) double_buffer_i(
         .clk(clk), 
         .rst(rst),
         .db_wr_add(wr_add_reg),
@@ -51,11 +53,11 @@ endmodule
 
 module mux (
   input  logic signed [M*DATA_WIDTH-1:0] m_a, m_b,
-  input  logic                           cont,
+  input  logic                           m_cont,
   output logic signed [M*DATA_WIDTH-1:0] m_o
 );
   
   always_comb begin
-    m_o = cont ? m_a : m_b; // 1 -> a , 0 -> b
+    m_o = m_cont ? m_a : m_b; // 1 -> a , 0 -> b
   end
 endmodule

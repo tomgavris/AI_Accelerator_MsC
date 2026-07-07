@@ -1,14 +1,16 @@
 import pe_pkg::*;
 
-module double_buffer (
-    input  logic signed [DATA_WIDTH-1:0]  db_i,
+module double_buffer # (
+   parameter DB_WIDTH = DATA_WIDTH 
+)(
+    input  logic signed [DB_WIDTH-1:0]  db_i,
     input  logic [$clog2(SRAM_SIZE)-1:0]  db_wr_add, db_rd_add, 
     input  logic                          clk, rst, state,
-    output logic signed [DATA_WIDTH-1:0]  db_o
+    output logic signed [DB_WIDTH-1:0]  db_o
 );
 
     logic [1:0][$clog2(SRAM_SIZE)-1:0] add_wire ;
-    logic signed [1:0][DATA_WIDTH-1:0] temp;
+    logic signed [1:0][DB_WIDTH-1:0] temp;
     logic [1:0]                        rd_wire, wr_wire;
 
 
