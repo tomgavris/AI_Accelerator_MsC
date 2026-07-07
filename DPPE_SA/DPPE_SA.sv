@@ -3,7 +3,7 @@ import pe_pkg::*;
 module DPPE_SA (
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_i,
     input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      sa_p_i,
-    input  logic                                                              sa_clk, sa_rst, sa_wr_e, sa_comp_e,
+    input  logic                                                              clk, sa_rst, sa_wr_e, sa_comp_e,
     input  logic signed [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]         sa_w_i,
     output logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_o,
     output logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      sa_parsum_o // logic around the output has to be defined
@@ -62,18 +62,18 @@ generate
                 .IS_LAST_Y(i == M-1),
                 .IS_LAST_ALL(i == M-1 && j == M-1)
             ) DPPE_inst (
-            .mid_a_i(a_wires[i][j]),
-            .mid_w_i(w_wires[i][j]),
-            .mid_p_i(p_wires[i][j]),
-            .clk(sa_clk), 
+            .dppe_a_i(a_wires[i][j]),
+            .dppe_w_i(w_wires[i][j]),
+            .dppe_p_i(p_wires[i][j]),
+            .clk(clk), 
             .rst(sa_rst), 
-            .mid_wr_e(wr_en_wires[i][j]), 
+            .dppe_wr_e(wr_en_wires[i][j]), 
             .comp_e_i(comp_en_wire[i][j]),
             .comp_e_o(comp_en_wire[i+1][j]),
-            .wr_e_o(wr_en_wires[i+1][j]), 
-            .mid_w_o(w_wires[i+1][j]),
-            .mid_a_o(a_wires[i][j+1]),
-            .mid_parsum_o(p_wires[i+1][j])
+            .dppe_wr_e_o(wr_en_wires[i+1][j]), 
+            .dppe_w_o(w_wires[i+1][j]),
+            .dppe_a_o(a_wires[i][j+1]),
+            .dppe_parsum_o(p_wires[i+1][j])
             );
         end
     end
