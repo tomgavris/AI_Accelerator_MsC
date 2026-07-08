@@ -2,14 +2,16 @@ import pe_pkg::*;
 
 module accumulator(
      	input  logic					                      clk, rst, op, hold, state,
-   		input  logic        [$clog2(ACC_SIZE)-1:0]	acc_wr_addr, acc_rd_addr,
+      input  logic                                valid_i, rd_en, 
+   		input  logic        [$clog2(SRAM_SIZE)-1:0]	acc_wr_addr, acc_rd_addr,
    		input  logic signed [M*DATA_WIDTH-1:0]	    acc_i,
+      output logic                                valid_o, acc_ready,
       output logic signed [M*DATA_WIDTH-1:0]      acc_o
   );
 
   logic signed [M*DATA_WIDTH-1:0] acc_reg, acc_res_w, m_o_w;
   logic [$clog2(ACC_SIZE)-1:0]    wr_add_reg;
-  logic                           op_reg;
+  logic                           op_reg, valid_reg;
 
   double_buffer #(
     .DB_WIDTH(M*DATA_WIDTH)
@@ -19,6 +21,10 @@ module accumulator(
         .db_wr_add(wr_add_reg),
         .db_rd_add(acc_rd_addr),
         .db_i(acc_res_w),
+        .db_wr(valid_reg), 
+        .db_rd(rd_en),
+        .db_ready(acc_ready), 
+        .db_valid(valid_o),  
         .state(state),
         .db_o(acc_o)
     );
@@ -38,11 +44,13 @@ module accumulator(
         acc_reg <= '0;
         op_reg <= '0;
         wr_add_reg <= '0;
+        valid_reg <= '0;
     end
     else if(!hold) begin 
       wr_add_reg <= acc_wr_addr;
       op_reg <= op;
       acc_reg <= acc_i;
+      valid_reg <= valid_i;
     end
 
   end
