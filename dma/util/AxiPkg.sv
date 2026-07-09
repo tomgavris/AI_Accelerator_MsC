@@ -1,5 +1,6 @@
 package AxiPkg;
 
+    import pe_pkg::*;
     //
     // Write Address Channel
     //
@@ -18,9 +19,9 @@ package AxiPkg;
     // Write Data Channel
     //
     typedef struct packed {
-        logic   [63:0]          WDATA;
-        logic   [7:0]           WSTRB;
-        logic                   WLAST;
+        logic   [SRAM_WIDTH-1:0]     WDATA;
+        logic   [(SRAM_WIDTH/8)-1:0] WSTRB;
+        logic                        WLAST;
     } AxiWrData_t;
 
     //
@@ -49,10 +50,10 @@ package AxiPkg;
     // Read Data Channel
     //
     typedef struct packed {
-        logic   [1:0]           RID;
-        logic   [63:0]          RDATA;
-        logic   [1:0]           RRESP;
-        logic                   RLAST;
+        logic   [1:0]            RID;
+        logic   [SRAM_WIDTH-1:0] RDATA;
+        logic   [1:0]            RRESP;
+        logic                    RLAST;
     } AxiRdData_t;
 
 endpackage

@@ -61,4 +61,4 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
         .WriteIntf      (WriteIntf)
     );
 
-endmodule;
+endmodule
