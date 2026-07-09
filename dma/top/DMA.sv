@@ -16,12 +16,14 @@ module DMA #(parameter FIFO_DEPTH = 256)
     // Clock and Reset
     input   logic           ACLK,
     input   logic           ARESETn,
-
-    // Interrupt
-    output  logic           Irq,
-
-    // Controller Access Port
-    AXILiteIntf.Slave       RegIntf,
+    
+    // RoCC Interface
+    input   logic [31:0]    src_addr,
+    input   logic [31:0]    dst_addr,
+    input   logic [31:0]    length,
+    input   logic           go_pulse, 
+    output  logic           busy,
+    
 
     // AXI4 Reader Port
     AXI4ReadIntf.Master     AxiReadIntf,
@@ -41,8 +43,11 @@ module DMA #(parameter FIFO_DEPTH = 256)
     Controller controller_inst (
         .ACLK               (ACLK),
         .ARESETn            (ARESETn),
-        .Irq                (Irq),
-        .RegIntf            (RegIntf),
+        .src_addr           (src_addr),
+        .dst_addr           (dst_addr),
+        .length             (length),
+        .go_pulse           (go_pulse), 
+        .busy               (busy),
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),
         .WrCmdIntf          (wr_cmd_intf),

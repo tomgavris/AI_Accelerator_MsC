@@ -1,5 +1,6 @@
 package DmaPkg;
 
+    import pe_pkg::*;
     //
     // Read/Write Engine Command Format
     //
@@ -30,6 +31,6 @@ package DmaPkg;
     //
     // Reader-Queue-Writer Packet type
     //
-    typedef logic [63:0]    Packet_t;
+    typedef logic [SRAM_WIDTH-1:0] Packet_t;
 
 endpackage
