@@ -3,7 +3,7 @@ import pe_pkg::*;
 module DPPE_SA (
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_i,
     input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      sa_p_i,
-    input  logic                                                              clk, sa_rst, sa_wr_e, sa_comp_e, sa_ready_i,
+    input  logic                                                              clk, sa_rst, sa_wr_e, sa_comp_e, sa_acc_ready_i,
     input  logic signed [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]         sa_w_i,
     output logic                                                              sa_valid_o,
     output logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_o,
@@ -76,6 +76,7 @@ module DPPE_SA (
         for (i = 0; i < M; i++) begin
             for (j = 0; j < M ; j++) begin
                 DPPE #(
+                    .FIRST_ROW(i == 0),
                     .IS_LAST_X(j == M-1),
                     .IS_LAST_Y(i == M-1),
                     .IS_LAST_ALL(i == M-1 && j == M-1)
