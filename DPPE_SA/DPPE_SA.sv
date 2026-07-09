@@ -2,7 +2,6 @@ import pe_pkg::*;
 
 module DPPE_SA (
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_i,
-    input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0]                      sa_p_i,
     input  logic                                                              clk, sa_rst, sa_wr_e, sa_comp_e, sa_acc_ready_i,
     input  logic signed [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]         sa_w_i,
     output logic                                                              sa_valid_o,
@@ -57,19 +56,9 @@ module DPPE_SA (
     generate 
         for (i = 0; i < M; i++) begin
             for (j = 0; j < N ; j++) begin
-                assign p_wires[0][i][j]   = sa_p_i[i][j];
                 assign sa_parsum_o[i][j] = p_wires[M][i][j];
             end
         end
-    endgenerate
-
-    generate 
-            for (i = 0; i < M ; i++) begin
-                for (j = 0; j < M; j++) begin
-                    assign wr_en_wires[i][j] = sa_wr_e;
-                    assign comp_en_wire[i][j] = sa_comp_e; 
-                end
-            end
     endgenerate
 
     generate
@@ -88,6 +77,8 @@ module DPPE_SA (
                 .rst(sa_rst), 
                 .dppe_wr_e(wr_en_wires[i][j]), 
                 .comp_e_i(comp_en_wire[i][j]),
+
+                // inter-DPPE connections
                 .comp_e_o(comp_en_wire[i+1][j]),
                 .dppe_wr_e_o(wr_en_wires[i+1][j]), 
                 .dppe_w_o(w_wires[i+1][j]),

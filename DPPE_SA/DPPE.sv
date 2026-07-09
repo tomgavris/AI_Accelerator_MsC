@@ -1,6 +1,7 @@
 import pe_pkg::*;
 
 module DPPE #(
+    parameter FIRST_ROW = 0,
     parameter IS_LAST_X = 0, 
     parameter IS_LAST_Y = 0, 
     parameter IS_LAST_ALL = 0 
@@ -90,7 +91,7 @@ endgenerate
 generate
     if(IS_LAST_Y || IS_LAST_ALL) begin // on the last module of the grid don't use boundary registers
         for (i = 0; i< N ; i++) begin
-                assign p_wires[0][i] = dppe_p_i[i];
+                assign p_wires[0][i] = FIRST_ROW ? '0 : dppe_p_i[i]; // driving the psum_i of the first row DPPEs to 0 
                 assign dppe_parsum_o[i] = p_wires[N][i];
         end
     end else begin
