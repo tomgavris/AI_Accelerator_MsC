@@ -2,7 +2,8 @@ import pe_pkg::*;
 
 module BANKED_SP (
     input  logic signed [PARTITIONS-1:0][DATA_WIDTH-1:0]        sp_i,
-    input  logic                                                clk, rst, sp_rd, sp_wr, sp_state, 
+    input  logic                                                clk, rst,
+    input  logic                                                sp_rd, sp_wr, sp_state, sp_flush, 
     input  logic        [PARTITIONS-1:0][$clog2(SRAM_SIZE)-1:0] sp_wr_add, sp_rd_add, 
     output logic                                                sp_ready, sp_valid,
     output logic signed [PARTITIONS-1:0][DATA_WIDTH-1:0]        sp_o
@@ -28,6 +29,7 @@ module BANKED_SP (
                 .state(state_wire[i]),
                 .db_wr(wr_wire[i]), 
                 .db_rd(rd_wire[i]),
+                .db_flush(sp_flush),
                 .db_ready(ready_wire[i]), 
                 .db_valid(valid_wire[i]),
                 .db_wr_add(sp_wr_add[i]),
