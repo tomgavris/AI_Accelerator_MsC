@@ -16,7 +16,12 @@ package pe_pkg;
     // parameters relating to memory
     localparam PARTITIONS = 4;
     localparam SP_SIZE = 2048; // Scratchpad size
+    localparam ACC_SIZE = 512;
     localparam SRAM_SIZE = SP_SIZE/PARTITIONS;
     localparam CONC_ADD = M/PARTITIONS; // Concurrent addresses read from each partition
     localparam SRAM_WIDTH = CONC_ADD*N*OP*DATA_WIDTH; // One address read for each partition  
+
+    // Batch parameters
+    localparam BATCH_SIZE = 64;
+    localparam K_TILE = 64;         // K is the number of tiles needed before we get one result
 endpackage
