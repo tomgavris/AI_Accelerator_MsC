@@ -22,6 +22,12 @@ module DMA #(parameter FIFO_DEPTH = 256)
     input   logic [31:0]    dst_addr,
     input   logic [31:0]    length,
     input   logic           go_pulse, 
+    input   logic           dma_mode, 
+
+    input   logic [63:0]    acc_data_i,
+    input   logic           acc_valid_i,
+    output  logic           acc_ready_o,
+
     output  logic           busy,
     
 
@@ -48,6 +54,7 @@ module DMA #(parameter FIFO_DEPTH = 256)
         .length             (length),
         .go_pulse           (go_pulse), 
         .busy               (busy),
+        .dma_mode           (dma_mode),
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),
         .WrCmdIntf          (wr_cmd_intf),
@@ -57,6 +64,12 @@ module DMA #(parameter FIFO_DEPTH = 256)
     DataMover #(.FIFO_DEPTH(FIFO_DEPTH)) data_mover_inst (
         .ACLK               (ACLK),
         .ARESETn            (ARESETn),
+        
+        .dma_mode           (dma_mode),     
+        .acc_data_i         (acc_data_i),   
+        .acc_valid_i        (acc_valid_i),  
+        .acc_ready_o        (acc_ready_o),  
+
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),
         .WrCmdIntf          (wr_cmd_intf),

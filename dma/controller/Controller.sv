@@ -20,7 +20,8 @@ module Controller (
     input   logic [31:0]    src_addr,
     input   logic [31:0]    dst_addr,
     input   logic [31:0]    length,
-    input   logic           go_pulse, 
+    input   logic           go_pulse, dma_mode,
+
     output  logic           busy,
 
     // Read Cmd/Stat Interface
@@ -148,9 +149,12 @@ module Controller (
                             read_stat_posted    <= '1;
                             read_stat           <= rd_trans_stat_intf.Data;
                         end
+                        else if (dma_mode == 1) begin
+                            read_stat_posted    <= '1;
+                        end
         endcase
 
-    assign rd_trans_stat_intf.Ready = state == STAT;
+    assign rd_trans_stat_intf.Ready = (state == STAT) && (dma_mode == 1'b0);
 
     //
     // Write Status
