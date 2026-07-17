@@ -1,15 +1,15 @@
 import pe_pkg::*;
 
 module control_unit (
-    input  logic clk, rst, cu_hold,
-    input  logic stop_comp, start_comp,             // stop computing signal comes from the translator
-    input  logic start_w_load,                      // signals from mem_cu
+    input  logic clk, rst, 
+    input  logic stop_comp, start_comp, cu_hold,    // RoCC Tran. signals
+    input  logic start_w_load,                      // Mem FSM signal
     input  logic sa_valid,
 
     output logic results_ready,
-    output logic sp_rd, sp_flush,                   // scratchpad signals
-    output logic acc_op, acc_hold, acc_state,       // accumulator SRAM signals
-    output logic sa_wr, sa_comp_e                   // systolic array signals
+    output logic sp_rd, sp_flush,                   // SP signals
+    output logic acc_op, acc_hold, acc_state,       // Accumulator signals
+    output logic sa_wr, sa_comp_e                   // SA signals
 );
 
     typedef enum logic [1:0] { 
@@ -21,9 +21,9 @@ module control_unit (
     state_t next_state, curr_state;
     
     logic [$clog2(M)-1:0]          sp_count;
-    logic [$clog2(BATCH_SIZE)-1:0] comp_count, in_count, out_count;
+    logic [$clog2(BATCH_SIZE)-1:0] in_count, out_count;
     logic                          in_cnt_clr, out_cnt_clr; 
-    logic                          count_en, cnt_clr, comp_count_en, b_cnt_clr, k_increase, in_count_en, k_clear;
+    logic                          count_en, cnt_clr, comp_count_en, k_increase, in_count_en, k_clear;
     logic                          acc_state_flip;
     logic [$clog2(K_TILE)-1:0]     k_tile_count;
 
@@ -34,6 +34,7 @@ module control_unit (
         else curr_state <= next_state;
     end
 
+    // Acc. flipping state logic
     always_ff @(posedge clk) begin
         if(rst) begin
             acc_state <= 1'b0; 
@@ -43,6 +44,7 @@ module control_unit (
         end
     end
 
+    // SP counter during LOAD
     always_ff @(posedge clk) begin
         if(rst || cnt_clr) begin
             sp_count <= '0;
@@ -55,6 +57,7 @@ module control_unit (
         end 
     end
 
+    // Hold logic
     always_ff @(posedge clk) begin
         if(rst) begin
             acc_hold <= 0;
@@ -65,15 +68,7 @@ module control_unit (
         else acc_hold <= 0;
     end    
 
-    always_ff @(posedge clk) begin
-        if(rst) begin
-            comp_count <= '0;
-        end
-        else if(sa_valid && comp_count_en) begin
-            comp_count <= comp_count +1;
-        end
-    end 
-
+    // K_tile count determines acc_op 
     always_ff @(posedge clk) begin
         if(rst || k_clear) begin
             k_tile_count <= '0;
@@ -117,7 +112,6 @@ module control_unit (
 
         count_en      = 0;
         cnt_clr       = 0;
-        b_cnt_clr     = 0;
 
         k_increase = 0;
         k_clear = 0;
@@ -171,14 +165,13 @@ module control_unit (
                         k_clear = 1;
                     end 
                     else begin
-                        
                         k_increase = 1;
-                        next_state = COMP;
                     end
 
                     in_cnt_clr  = 1;
                     out_cnt_clr = 1;
-                    b_cnt_clr = 1;   
+
+                    next_state = IDLE; // go to IDLE so that we can load the weights for the next batch
                 end 
                 else if(stop_comp) begin
                     next_state = IDLE;

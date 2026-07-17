@@ -2,13 +2,14 @@ import pe_pkg::*;
 
 
 module memory_unit (
-    input  logic clk, rst, start_w, start_a,
-    input  logic results_ready,                     // comes from the DP FSM
-    input  logic flush_flag, dma_load_finish,       // accumulator flush TODO: add this to accumulator
+    input  logic clk, rst, 
+    input  logic start_w, start_a,                  // RoCC Tran. signals
+    input  logic results_ready,                     // DP FSM signal
+    input  logic dma_load_finish,                   // DMA signal
     
-    output logic start_w_load,
-    output logic acc_rd,                            // accumulator SRAM signal
-    output logic dma_go_pulse                       // dma signals
+    output logic start_w_load,                      // DP FSM signal
+    output logic acc_rd,                            // Accumulator signal
+    output logic dma_go_pulse                       // DMA signal
 );
 
     typedef enum logic [2:0] { 
