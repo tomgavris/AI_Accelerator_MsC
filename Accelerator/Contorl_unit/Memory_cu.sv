@@ -7,7 +7,7 @@ module memory_unit (
     input  logic results_ready,                     // DP FSM signal
     input  logic dma_load_finish,                   // DMA signal
     
-    output logic start_w_load,                      // DP FSM signal
+    output logic start_w_load, start_comp,          // DP FSM signal
     output logic acc_rd,                            // Accumulator signal
     output logic dma_go_pulse                       // DMA signal
 );
@@ -25,6 +25,8 @@ module memory_unit (
     state_t                        curr_state, next_state;
     logic                          cnt_clr;
     logic [$clog2(BATCH_SIZE)-1:0] batch_count;
+    logic                          w_req_flag, a_req_flag, store_req_flag;
+    logic                          w_req_clr, a_req_clr, store_req_clr;
 
     always_ff @(posedge clk) begin
         if(rst) begin
@@ -33,6 +35,24 @@ module memory_unit (
         else begin
             curr_state <= next_state;
         end 
+    end
+
+    always_ff @(posedge clk) begin
+        if(rst ) begin
+            w_req_flag     = 0; 
+            a_req_flag     = 0;
+            store_req_flag = 0;
+        end
+        else begin
+            if (start_w)            w_req_flag  <= 1'b1;
+            else if (w_req_clr)     w_req_flag <= 1'b0;
+
+            if (start_a)            a_req_flag <= 1'b1;
+            else if (a_req_clr)     a_req_flag <= 1'b0;
+
+            if (results_ready)      store_req_flag <= 1'b1;
+            else if (store_req_clr) store_req_flag <= 1'b0; 
+        end
     end
 
     
@@ -45,16 +65,20 @@ module memory_unit (
         start_w_load = 0;
 
         cnt_clr = 0;     
+
+        w_req_clr     = 0;
+        a_req_clr     = 0;
+        store_req_clr = 0;
                 
         case (curr_state)
             IDLE : begin // done
-                if(start_w) begin
+                if(w_req_flag) begin
                     next_state = W_FETCH_REQ;
                 end
-                else if(start_a) begin
+                else if(a_req_flag) begin
                     next_state = A_FETCH_REQ;
                 end
-                else if(results_ready) begin
+                else if(store_req_flag) begin
                     next_state = STORE_REQ;
                 end
                 else next_state = IDLE;
@@ -84,6 +108,7 @@ module memory_unit (
             A_FETCH_WAIT : begin // done
 
                 if(dma_load_finish) begin
+                    start_comp = 1;
                     next_state = IDLE;
                 end
                 else next_state = A_FETCH_WAIT;

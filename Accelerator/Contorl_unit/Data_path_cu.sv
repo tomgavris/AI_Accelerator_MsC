@@ -2,9 +2,9 @@ import pe_pkg::*;
 
 module control_unit (
     input  logic clk, rst, 
-    input  logic stop_comp, start_comp, cu_hold,    // RoCC Tran. signals
-    input  logic start_w_load,                      // Mem FSM signal
-    input  logic sa_valid,
+    input  logic stop_comp, cu_hold,               // RoCC Tran. signals
+    input  logic start_w_load, start_comp,         // Mem FSM signal
+    input  logic sa_valid, 
 
     output logic results_ready,
     output logic sp_rd, sp_flush,                   // SP signals
@@ -26,6 +26,7 @@ module control_unit (
     logic                          count_en, cnt_clr, comp_count_en, k_increase, in_count_en, k_clear;
     logic                          acc_state_flip;
     logic [$clog2(K_TILE)-1:0]     k_tile_count;
+    logic                          w_ready_flag, reg_clr;
 
     always_ff @(posedge clk) begin
         if(rst || cu_hold) begin
@@ -79,6 +80,15 @@ module control_unit (
     end 
 
     always_ff @(posedge clk) begin
+        if (rst || reg_clr) begin 
+            w_ready_flag <= 1'b0;
+        end
+        else if (start_w_load) begin
+            w_ready_flag <= 1'b1;
+        end
+    end
+
+    always_ff @(posedge clk) begin
         if(rst || in_cnt_clr) begin
             in_count <= '0;
         end
@@ -113,14 +123,17 @@ module control_unit (
         count_en      = 0;
         cnt_clr       = 0;
 
-        k_increase = 0;
-        k_clear = 0;
+        k_increase    = 0;
+        k_clear       = 0;
+
+        reg_clr       = 0;
 
         acc_op = (k_tile_count == 0) ? 1'b0 : 1'b1;
 
         case (curr_state)
             IDLE : begin 
-                if(start_w_load) begin
+                if(w_ready_flag) begin
+                    reg_clr   = 1;
                     next_state = W_LOAD;
                 end
                 else if (start_comp) begin
@@ -131,11 +144,12 @@ module control_unit (
 
 
             W_LOAD : begin // done
-                        sp_rd     = '1; 
+                        sp_rd     = 1; 
                         
-                        sa_wr     = '1;
+                        sa_wr     = 1;
 
                         count_en  = 1;
+
                         if(sp_count == (M-1)) begin
                             next_state = IDLE;
                             cnt_clr  = 1;
@@ -147,10 +161,10 @@ module control_unit (
                     end
             
             COMP : begin
-                sa_comp_e = 1;
+                sa_comp_e     = 1;
 
                 comp_count_en = 1;
-                
+
                 if (in_count < BATCH_SIZE) begin
                     sp_rd       = 1'b1;
                     in_count_en = 1'b1;
