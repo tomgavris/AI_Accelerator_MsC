@@ -9,7 +9,7 @@ module accumulator(
       output logic signed [M*DATA_WIDTH-1:0]      acc_o
   );
 
-  logic signed [M*DATA_WIDTH-1:0] acc_reg, acc_res_w, m_o_w;
+  logic signed [M*DATA_WIDTH-1:0] acc_data_reg, acc_res_w, m_o_w;
   logic [$clog2(ACC_SIZE)-1:0]    wr_add_reg;
   logic                           op_reg, valid_reg;
 
@@ -41,20 +41,20 @@ module accumulator(
 
   always_ff @ (posedge clk) begin
     if (rst) begin
-        acc_reg <= '0;
+        acc_data_reg <= '0;
         op_reg <= '0;
         wr_add_reg <= '0;
         valid_reg <= '0;
     end
     else if(!hold) begin 
-      wr_add_reg <= acc_wr_addr;
-      op_reg <= op;
-      acc_reg <= acc_i;
-      valid_reg <= valid_i;
+      wr_add_reg   <= acc_wr_addr;
+      op_reg       <= op;
+      acc_data_reg <= acc_i;
+      valid_reg    <= valid_i;
     end
   end
 
-  assign acc_res_w = acc_reg + m_o_w;
+  assign acc_res_w = acc_data_reg + m_o_w;
 
 endmodule
 
