@@ -9,7 +9,8 @@ module memory_unit (
     
     output logic start_w_load, start_comp,          // DP FSM signal
     output logic acc_rd,                            // Accumulator signal
-    output logic dma_go_pulse                       // DMA signal
+    output logic dma_go_pulse,                      // DMA signal
+    output logic busy                               // RoCC translator
 );
 
     typedef enum logic [2:0] { 
@@ -58,6 +59,8 @@ module memory_unit (
     
     always_comb begin
 
+        busy      = 1;
+
         acc_rd    = 0;
 
         dma_go_pulse = 0;
@@ -72,13 +75,19 @@ module memory_unit (
                 
         case (curr_state)
             IDLE : begin // done
+
+                busy = 0;
+
                 if(w_req_flag) begin
+                    w_req_clr  = 1;
                     next_state = W_FETCH_REQ;
                 end
                 else if(a_req_flag) begin
+                    a_req_clr  = 1;
                     next_state = A_FETCH_REQ;
                 end
                 else if(store_req_flag) begin
+                    store_req_clr  = 1;
                     next_state = STORE_REQ;
                 end
                 else next_state = IDLE;
