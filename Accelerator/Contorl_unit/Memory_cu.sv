@@ -1,15 +1,16 @@
 import pe_pkg::*;
 
 
-module memory_unit (
+module mem_fsm (
     input  logic clk, rst, 
-    input  logic start_w, start_a,                  // RoCC Tran. signals
-    input  logic results_ready,                     // DP FSM signal
-    input  logic dma_load_finish,                   // DMA signal
-    
-    output logic start_w_load, start_comp,          // DP FSM signal
+    input  logic start_w_i, start_a_i,              // RoCC Tran. signals
+    input  logic results_ready_i,                   // DP FSM signal
+    input  logic dma_load_finish_i,                 // DMA signal
+
+    output logic sp_wr_o, sp_state_o,
+    output logic start_w_load_o, start_comp_o,      // DP FSM signal
     output logic acc_rd,                            // Accumulator signal
-    output logic dma_go_pulse,                      // DMA signal
+    output logic dma_go_pulse, dma_mode_o,            // DMA signal
     output logic busy                               // RoCC translator
 );
 
@@ -24,7 +25,7 @@ module memory_unit (
     } state_t;
 
     state_t                        curr_state, next_state;
-    logic                          cnt_clr;
+    logic                          cnt_clr, sp_state_flip;
     logic [$clog2(BATCH_SIZE)-1:0] batch_count;
     logic                          w_req_flag, a_req_flag, store_req_flag;
     logic                          w_req_clr, a_req_clr, store_req_clr;
@@ -39,19 +40,28 @@ module memory_unit (
     end
 
     always_ff @(posedge clk) begin
+        if(rst) begin
+            sp_state_o <= 1'b0; 
+        end
+        else if(sp_state_flip) begin 
+            sp_state_o <= ~sp_state_o;
+        end
+    end
+
+    always_ff @(posedge clk) begin
         if(rst ) begin
             w_req_flag     = 0; 
             a_req_flag     = 0;
             store_req_flag = 0;
         end
         else begin
-            if (start_w)            w_req_flag  <= 1'b1;
+            if (start_w_i)          w_req_flag  <= 1'b1;
             else if (w_req_clr)     w_req_flag <= 1'b0;
 
-            if (start_a)            a_req_flag <= 1'b1;
+            if (start_a_i)          a_req_flag <= 1'b1;
             else if (a_req_clr)     a_req_flag <= 1'b0;
 
-            if (results_ready)      store_req_flag <= 1'b1;
+            if (results_ready_i)    store_req_flag <= 1'b1;
             else if (store_req_clr) store_req_flag <= 1'b0; 
         end
     end
@@ -64,8 +74,12 @@ module memory_unit (
         acc_rd    = 0;
 
         dma_go_pulse = 0;
+        dma_mode_o   = 0;
 
-        start_w_load = 0;
+        start_w_load_o = 0;
+
+        sp_wr_o       = 0;
+        sp_state_flip = 0;
 
         cnt_clr = 0;     
 
@@ -99,9 +113,10 @@ module memory_unit (
             end 
 
             W_FETCH_WAIT : begin // done
-                
-                if (dma_load_finish) begin
-                    start_w_load = 1;
+                sp_wr_o = 1;
+                if (dma_load_finish_i) begin
+                    start_w_load_o = 1;
+                    sp_state_flip = 1; 
                     next_state = IDLE;
                 end
                 else begin
@@ -115,9 +130,10 @@ module memory_unit (
             end 
 
             A_FETCH_WAIT : begin // done
-
-                if(dma_load_finish) begin
-                    start_comp = 1;
+                sp_wr_o = 1;
+                if(dma_load_finish_i) begin
+                    start_comp_o = 1;
+                    sp_state_flip = 1;
                     next_state = IDLE;
                 end
                 else next_state = A_FETCH_WAIT;
@@ -131,7 +147,8 @@ module memory_unit (
             STORE_WAIT : begin
                 acc_rd = 1'b1; 
 
-                if(dma_load_finish) begin
+                dma_mode_o = 1'b1;
+                if(dma_load_finish_i) begin
                     next_state = IDLE;
                 end
                 else begin 
