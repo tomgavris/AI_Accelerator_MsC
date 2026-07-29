@@ -3,21 +3,22 @@ import pe_pkg::*;
 module BANKED_SP (
     input  logic signed [PARTITIONS-1:0][DATA_WIDTH-1:0]        sp_i,
     input  logic                                                clk, rst,
-    input  logic                                                sp_rd, sp_wr, sp_state, sp_flush, 
+    input  logic                                                sp_rd_i, sp_wr_i, 
+    input  logic                                                sp_state_i,  
     input  logic        [PARTITIONS-1:0][$clog2(SRAM_SIZE)-1:0] sp_wr_add, sp_rd_add, 
-    output logic                                                sp_ready, sp_valid,
+    output logic                                                sp_ready_o, sp_valid_o,
     output logic signed [PARTITIONS-1:0][DATA_WIDTH-1:0]        sp_o
 );
 
     logic [PARTITIONS-1:0] valid_wire, ready_wire, rd_wire, wr_wire, state_wire;
 
 
-    assign sp_ready   = |ready_wire; // OR-ing all the ready wires
-    assign sp_valid   = &valid_wire; // AND-ing all the valid wires
+    assign sp_ready_o   = |ready_wire; // OR-ing all the ready wires
+    assign sp_valid_o   = &valid_wire; // AND-ing all the valid wires
 
-    assign rd_wire    = {PARTITIONS{sp_rd}};
-    assign wr_wire    = {PARTITIONS{sp_wr}};
-    assign state_wire = {PARTITIONS{sp_state}};
+    assign rd_wire    = {PARTITIONS{sp_rd_i}};
+    assign wr_wire    = {PARTITIONS{sp_wr_i}};
+    assign state_wire = {PARTITIONS{sp_state_i}};
     
     genvar i;
     generate
@@ -29,7 +30,6 @@ module BANKED_SP (
                 .state(state_wire[i]),
                 .db_wr(wr_wire[i]), 
                 .db_rd(rd_wire[i]),
-                .db_flush(sp_flush),
                 .db_ready(ready_wire[i]), 
                 .db_valid(valid_wire[i]),
                 .db_wr_add(sp_wr_add[i]),

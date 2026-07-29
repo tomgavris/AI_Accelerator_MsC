@@ -1,15 +1,18 @@
 import pe_pkg::*;
 
-module control_unit (
-    input  logic clk, rst, 
-    input  logic stop_comp, cu_hold,               // RoCC Tran. signals
-    input  logic start_w_load, start_comp,         // Mem FSM signal
-    input  logic sa_valid, 
+// For compute commands an sa_busy signal will have to be added to the port list
 
-    output logic results_ready,
-    output logic sp_rd, sp_flush,                   // SP signals
-    output logic acc_op, acc_hold, acc_state,       // Accumulator signals
-    output logic sa_wr, sa_comp_e                   // SA signals
+module dp_fsm (
+    input  logic clk, rst, 
+    input  logic stop_comp_i, cu_hold_i,            // RoCC Tran. signals
+    input  logic start_w_load_i, start_comp_i,      // Mem FSM signal
+    input  logic sa_valid_i, 
+
+    output logic results_ready_o,
+    output logic sp_rd_o,                           // SP signals
+    output logic acc_op_o, acc_hold_o, acc_state_o, // Accumulator signals
+    output logic sa_wr_o, sa_comp_e_o,              // SA signals
+    output logic out_count                          // Accumulator addressing
 );
 
     typedef enum logic [1:0] { 
@@ -21,7 +24,7 @@ module control_unit (
     state_t next_state, curr_state;
     
     logic [$clog2(M)-1:0]          sp_count;
-    logic [$clog2(BATCH_SIZE)-1:0] in_count, out_count;
+    logic [$clog2(BATCH_SIZE)-1:0] in_count;
     logic                          in_cnt_clr, out_cnt_clr; 
     logic                          count_en, cnt_clr, comp_count_en, k_increase, in_count_en, k_clear;
     logic                          acc_state_flip;
@@ -29,7 +32,7 @@ module control_unit (
     logic                          w_ready_flag, reg_clr;
 
     always_ff @(posedge clk) begin
-        if(rst || cu_hold) begin
+        if(rst || cu_hold_i) begin
             curr_state <= IDLE;
         end    
         else curr_state <= next_state;
@@ -38,10 +41,10 @@ module control_unit (
     // Acc. flipping state logic
     always_ff @(posedge clk) begin
         if(rst) begin
-            acc_state <= 1'b0; 
+            acc_state_o <= 1'b0; 
         end
         else if(acc_state_flip) begin 
-            acc_state <= ~acc_state;
+            acc_state_o <= ~acc_state_o;
         end
     end
 
@@ -61,12 +64,12 @@ module control_unit (
     // Hold logic
     always_ff @(posedge clk) begin
         if(rst) begin
-            acc_hold <= 0;
+            acc_hold_o <= 0;
         end
-        else if(cu_hold) begin
-            acc_hold <= 1;
+        else if(cu_hold_i) begin
+            acc_hold_o <= 1;
         end
-        else acc_hold <= 0;
+        else acc_hold_o <= 0;
     end    
 
     // K_tile count determines acc_op 
@@ -83,7 +86,7 @@ module control_unit (
         if (rst || reg_clr) begin 
             w_ready_flag <= 1'b0;
         end
-        else if (start_w_load) begin
+        else if (start_w_load_i) begin
             w_ready_flag <= 1'b1;
         end
     end
@@ -99,25 +102,24 @@ module control_unit (
     
     always_ff @(posedge clk) begin
         if(rst || out_cnt_clr) out_count <= '0;
-        else if(sa_valid)      out_count <= out_count + 1; 
+        else if(sa_valid_i)      out_count <= out_count + 1; 
     end 
 
     always_comb begin
 
         // setting all signals to 0
-        sp_rd = 0;
-        sp_flush = 0;
+        sp_rd_o = 0;
 
-        acc_op = 0; 
-        acc_hold = 0; 
-        acc_state = 0;
+        acc_op_o = 0; 
+        acc_hold_o = 0; 
+        acc_state_o = 0;
 
         acc_state_flip = 0;
 
-        sa_wr = 0; 
-        sa_comp_e = 0;
+        sa_wr_o = 0; 
+        sa_comp_e_o = 0;
 
-        results_ready = 0;
+        results_ready_o = 0;
         comp_count_en = 0;
 
         count_en      = 0;
@@ -128,7 +130,7 @@ module control_unit (
 
         reg_clr       = 0;
 
-        acc_op = (k_tile_count == 0) ? 1'b0 : 1'b1;
+        acc_op_o = (k_tile_count == 0) ? 1'b0 : 1'b1;
 
         case (curr_state)
             IDLE : begin 
@@ -136,7 +138,7 @@ module control_unit (
                     reg_clr   = 1;
                     next_state = W_LOAD;
                 end
-                else if (start_comp) begin
+                else if (start_comp_i) begin
                     next_state = COMP;
                 end
                 else next_state = IDLE;
@@ -144,16 +146,15 @@ module control_unit (
 
 
             W_LOAD : begin // done
-                        sp_rd     = 1; 
+                        sp_rd_o     = 1; 
                         
-                        sa_wr     = 1;
+                        sa_wr_o     = 1;
 
                         count_en  = 1;
 
                         if(sp_count == (M-1)) begin
                             next_state = IDLE;
                             cnt_clr  = 1;
-                            sp_flush = 1;
                         end 
                         else begin
                             next_state = W_LOAD;
@@ -161,21 +162,21 @@ module control_unit (
                     end
             
             COMP : begin
-                sa_comp_e     = 1;
+                sa_comp_e_o     = 1;
 
                 comp_count_en = 1;
 
                 if (in_count < BATCH_SIZE) begin
-                    sp_rd       = 1'b1;
+                    sp_rd_o       = 1'b1;
                     in_count_en = 1'b1;
                 end
                 
 
-                if(sa_valid && (out_count == (BATCH_SIZE-1))) begin
+                if(sa_valid_i && (out_count == (BATCH_SIZE-1))) begin
 
                     if(k_tile_count == (K_TILE-1)) begin
                         acc_state_flip = 1;
-                        results_ready = 1;
+                        results_ready_o = 1;
                         k_clear = 1;
                     end 
                     else begin
@@ -187,7 +188,7 @@ module control_unit (
 
                     next_state = IDLE; // go to IDLE so that we can load the weights for the next batch
                 end 
-                else if(stop_comp) begin
+                else if(stop_comp_i) begin
                     next_state = IDLE;
                 end
                 else next_state = COMP;

@@ -6,32 +6,30 @@ module double_buffer # (
     input  logic signed [DB_WIDTH-1:0]   db_i,
     input  logic [$clog2(SRAM_SIZE)-1:0] db_wr_add, db_rd_add, 
     input  logic                         clk, rst, state, 
-    input  logic                         db_wr, db_rd, db_flush,
-    output logic                         db_ready, db_valid, 
+    input  logic                         db_wr, db_rd,
+    output logic                         db_ready, db_valid,
     output logic signed [DB_WIDTH-1:0]   db_o
 );
    
     logic [1:0][$clog2(SRAM_SIZE)-1:0] add_wire ;
     logic signed [1:0][DB_WIDTH-1:0]   temp;
-    logic [1:0]                        rd_wire, wr_wire, ready_wire, valid_wire;
+    logic [1:0]                        rd_wire, wr_wire;
 
-    assign db_ready = state ? ready_wire[1] : ready_wire[0];
-    assign db_valid = state ? valid_wire[0] : valid_wire[1];
+    
+    assign db_ready = 1'b1;
+    assign db_valid = 1'b1;
 
     genvar i;
     generate
         for (i = 0; i < 2; i++) begin
             single_port_ram SPRAM_I (
-            .clk(clk), 
-            .rst(rst),
-   		    .addr(add_wire[i]),
-   		    .sram_i(db_i),
-            .ram_ready(ready_wire[i]),
-            .ram_valid(valid_wire[i]),
-            .ram_flush(db_flush),
-   		    .wr(wr_wire[i]),
-   		    .rd(rd_wire[i]), 
-            .sram_o(temp[i])
+                .clk(clk), 
+                .rst(rst),
+                .addr(add_wire[i]),
+                .sram_i(db_i),
+                .wr(wr_wire[i]),
+                .rd(rd_wire[i]), 
+                .sram_o(temp[i])
             );
         end
     endgenerate
