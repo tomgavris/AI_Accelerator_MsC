@@ -4,7 +4,7 @@ This project details the creation of a Systolic Array (**SA**), which will be us
 
 ## Overview
 
-The purpose of this project is to create a fully functional AI accelerator, which will be introduced in ChipYard's framework and will be connected, as a tightly coupled device to a Rocket Core. The efficiency and performance of the finalised accelerator design will be assesed through a series of tests, held within the ChipYard framework.
+The purpose of this project is to create a fully functional AI accelerator, which will be introduced in ChipYard's framework and will be connected as a tightly coupled device to a Rocket Core. The efficiency and performance of the finalised accelerator design will be assesed through a series of tests, held within the ChipYard framework.
 The designed Systolic Array (**SA**) is implemented using Dot Product Processing Elements (DPPE).
 
 
@@ -36,11 +36,13 @@ This is also the level that handles the boundary register logic of the SA. In **
 
 **Accumulator SRAM:** When the size of the SA is smaller than the size of the matrices being processed, then the need for this module arises. It holds the resulting partial sums coming out of the SA and outputs the result when there is one.
 
-**DMA:** The Direct Memory Acces module is a hardware subsystem that enables peripherals or processors to transfer data directly to or from memory without involving the CPU. This offloads data movement tasks from the processor, improving system performance and efficiency.
+**DMA:** The Direct Memory Acces module is a hardware subsystem that enables peripherals or processors to transfer data directly to or from memory without involving the CPU. The DMA Engine used in this project uses an AXI4 bus protocol to facilitate data transfer between the L2 cache of the RISC-V core and the accelerator's internal components.
+
+Because of its unique position inside the system, the DMA has been modified in order to support two distinct modes. Mode 0 is where the DMA fetches data from the L2 cache, using its AXIReadIntf, and stores it to the SP, bypassing the AXIWriteIntf. In Mode 1 the DMA stores data, it receives from the Accumulator SRAM, to the L2 cache. In this case the AXIReadIntf is bypassed, reading data directly from the Accumulator SRAM, while the AXIWriteIntf is utilised to write the data into the L2 cache.
 
 **Banked Scratchpad:** Stores the activations that the SA will require for processing and is comprised of a number of SRAM modules. Unlike a standard L1 or L2 cache this scratchpad has all the activations required preloaded, before the computing from the SA begins. This way cache misses, which spike latency during computation, are avoided. It is partitioned into P number of banks, facilitating improved memory utilisation.  
 
-**SRAM:** This is a standard signle port RAM.
+**SRAM:** This is a standard single port RAM.
 
 **Double Buffer:** The Double Buffer or Ping-Pong Buffer as is it called, is a module consisting of two single port RAMs. It has two states and its name comes from the fact that in the first state data is written into the first RAM while data is read from the second one. Likewise, in the second state the RAMs switch roles allowing the module to act as a dual port RAM with concurrent read and write.
 
