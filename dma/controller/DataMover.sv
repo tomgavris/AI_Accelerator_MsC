@@ -20,9 +20,16 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
     ReadyValidIntf.Master   RdStatIntf,
 
     input   logic           dma_mode,      // 0 = Fetch (L2), 1 = Store (Acc)
+
+    // Accumulator Interface
     input   logic [63:0]    acc_data_i,
     input   logic           acc_valid_i,
     output  logic           acc_ready_o,
+
+    // SP Interface
+    input   logic           sp_ready_i,
+    output  logic [63:0]    sp_data_o,
+    output  logic           sp_valid_o,
 
     // Writer Cmd/Stat Interface
     ReadyValidIntf.Slave    WrCmdIntf,
@@ -51,32 +58,35 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
     );
 
     always_comb begin
+        // Default Assignments (Prevents latches and guarantees clean signals)
+        fifoEnqIntf.Valid       = 1'b0;
+        fifoEnqIntf.Data        = '0;
+        acc_ready_o             = 1'b0;
+        
+        reader_data_intf.Ready  = 1'b0;
+        sp_valid_o              = 1'b0;
+        sp_data_o               = '0;
+
         if (dma_mode == 1'b1) begin
             // -------------------------------------------------------------
             // STORE MODE: Accumulator writes directly into the FIFO
             // -------------------------------------------------------------
             fifoEnqIntf.Valid       = acc_valid_i;
-            
-            // Format the raw 64-bit Accumulator data into the DMA's Packet format
-            fifoEnqIntf.Data        = '0;           // Clear all fields
-            fifoEnqIntf.Data.Data   = acc_data_i;   // Map the payload
-            fifoEnqIntf.Data.Last   = 1'b0;         // Writer will handle AXI burst boundaries
-            
+            fifoEnqIntf.Data.Data   = acc_data_i; 
+            fifoEnqIntf.Data.Last   = 1'b0;         
             acc_ready_o             = fifoEnqIntf.Ready;
-            
-            // Pause the Reader
-            reader_data_intf.Ready  = 1'b0; 
         end 
         else begin
             // -------------------------------------------------------------
-            // FETCH MODE: AXI Reader writes into the FIFO
+            // FETCH MODE: AXI Reader writes directly to the SP (Bypass FIFO)
             // -------------------------------------------------------------
-            fifoEnqIntf.Valid       = reader_data_intf.Valid;
-            fifoEnqIntf.Data        = reader_data_intf.Data;
-            reader_data_intf.Ready  = fifoEnqIntf.Ready;
+            sp_valid_o              = reader_data_intf.Valid;
             
-            // Pause the Accumulator
-            acc_ready_o             = 1'b0;
+            // Extract the raw 64-bit payload from the DMA's Packet struct
+            sp_data_o               = reader_data_intf.Data.Data; 
+            
+            // Route the SP's backpressure directly to the AXI Reader
+            reader_data_intf.Ready  = sp_ready_i;
         end
     end
 
