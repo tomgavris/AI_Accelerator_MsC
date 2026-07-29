@@ -24,9 +24,16 @@ module DMA #(parameter FIFO_DEPTH = 256)
     input   logic           go_pulse, 
     input   logic           dma_mode_i, 
 
+    // Accumulator Interface
     input   logic [63:0]    acc_data_i,
     input   logic           acc_valid_i,
     output  logic           acc_ready_o,
+
+    // SP Interface
+    input   logic           sp_ready_i,
+    output  logic [63:0]    sp_data_o,
+    output  logic           sp_valid_o,
+    
 
     output  logic           busy,
     output  logic           dma_load_finish_o,
@@ -67,10 +74,14 @@ module DMA #(parameter FIFO_DEPTH = 256)
         .ACLK               (ACLK),
         .ARESETn            (ARESETn),
         
-        .dma_mode           (dma_mode),     
+        .dma_mode           (dma_mode_i),     
         .acc_data_i         (acc_data_i),   
         .acc_valid_i        (acc_valid_i),  
         .acc_ready_o        (acc_ready_o),  
+
+        .sp_ready_i         (sp_ready_i),
+        .sp_data_o          (sp_data_o),
+        .sp_valid_o         (sp_valid_o),
 
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),
