@@ -187,9 +187,14 @@ module Controller (
                             write_stat_posted    <= '1;
                             write_stat           <= wr_trans_stat_intf.Data;
                         end
+                        // BYPASS THE WRITER IN FETCH MODE
+                        else if (dma_mode == 1'b0) begin 
+                            write_stat_posted    <= '1;
+                        end
         endcase
 
-    assign wr_trans_stat_intf.Ready = state == STAT;
+    // LOCK THE READY SIGNAL IN FETCH MODE
+    assign wr_trans_stat_intf.Ready = (state == STAT) && (dma_mode == 1'b1);
 
     //
     // Read Command
@@ -202,18 +207,25 @@ module Controller (
         end
         else case (state)
             IDLE    :   begin
-                            read_cmd_posted <= '0;
                             if (go_pulse && (length != '0)) begin
-                                rd_trans_cmd_intf.Valid         <= '1;
-                                rd_trans_cmd_intf.Data.NumBytes <= length;
-                                rd_trans_cmd_intf.Data.Address  <= src_addr;
+                                if (dma_mode == 1'b0) begin // ONLY POST IF FETCHING
+                                    read_cmd_posted                 <= '0;
+                                    rd_trans_cmd_intf.Valid         <= '1;
+                                    rd_trans_cmd_intf.Data.NumBytes <= length;
+                                    rd_trans_cmd_intf.Data.Address  <= src_addr;
+                                end else begin
+                                    read_cmd_posted                 <= '1; // AUTO-POST
+                                    rd_trans_cmd_intf.Valid         <= '0;
+                                    rd_trans_cmd_intf.Data          <= '0;
+                                end
                             end
                             else begin
+                                read_cmd_posted                 <= '0;
                                 rd_trans_cmd_intf.Valid         <= '0;
                                 rd_trans_cmd_intf.Data          <= '0;
                             end
                         end
-            POST    :   if (rd_trans_cmd_intf.Ready) begin
+            POST    :   if (rd_trans_cmd_intf.Ready && (dma_mode == 1'b0)) begin
                             read_cmd_posted                     <= '1;
                             rd_trans_cmd_intf.Valid             <= '0;
                         end
@@ -230,18 +242,25 @@ module Controller (
         end
         else case (state)
             IDLE    :   begin
-                            write_cmd_posted    <= '0;
                             if (go_pulse && (length != '0)) begin
-                                wr_trans_cmd_intf.Valid         <= '1;
-                                wr_trans_cmd_intf.Data.NumBytes <= length;
-                                wr_trans_cmd_intf.Data.Address  <= dst_addr;
+                                if (dma_mode == 1'b1) begin // ONLY POST IF STORING
+                                    write_cmd_posted                <= '0;
+                                    wr_trans_cmd_intf.Valid         <= '1;
+                                    wr_trans_cmd_intf.Data.NumBytes <= length;
+                                    wr_trans_cmd_intf.Data.Address  <= dst_addr;
+                                end else begin
+                                    write_cmd_posted                <= '1; // AUTO-POST
+                                    wr_trans_cmd_intf.Valid         <= '0;
+                                    wr_trans_cmd_intf.Data          <= '0;
+                                end
                             end
                             else begin
+                                write_cmd_posted                <= '0;
                                 wr_trans_cmd_intf.Valid         <= '0;
                                 wr_trans_cmd_intf.Data          <= '0;
                             end
                         end
-            POST    :   if (wr_trans_cmd_intf.Ready) begin
+            POST    :   if (wr_trans_cmd_intf.Ready && (dma_mode == 1'b1)) begin
                             write_cmd_posted                    <= '1;
                             wr_trans_cmd_intf.Valid             <= '0;
                         end
