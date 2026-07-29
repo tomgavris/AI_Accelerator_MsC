@@ -22,13 +22,14 @@ module DMA #(parameter FIFO_DEPTH = 256)
     input   logic [31:0]    dst_addr,
     input   logic [31:0]    length,
     input   logic           go_pulse, 
-    input   logic           dma_mode, 
+    input   logic           dma_mode_i, 
 
     input   logic [63:0]    acc_data_i,
     input   logic           acc_valid_i,
     output  logic           acc_ready_o,
 
     output  logic           busy,
+    output  logic           dma_load_finish_o,
     
 
     // AXI4 Reader Port
@@ -54,6 +55,7 @@ module DMA #(parameter FIFO_DEPTH = 256)
         .length             (length),
         .go_pulse           (go_pulse), 
         .busy               (busy),
+        .dma_load_finish_o  (dma_load_finish_o),
         .dma_mode           (dma_mode),
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),

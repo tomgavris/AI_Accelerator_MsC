@@ -22,7 +22,10 @@ module Controller (
     input   logic [31:0]    length,
     input   logic           go_pulse, dma_mode,
 
-    output  logic           busy,
+    output  logic           busy, 
+
+    // DMA controll
+    output logic            dma_load_finish_o,
 
     // Read Cmd/Stat Interface
     ReadyValidIntf.Master   RdCmdIntf,
@@ -42,6 +45,8 @@ module Controller (
         XXX         = 'x
     } state_e;
 
+    logic busy_q;
+    
     // State Variables
     state_e         state, next;
     
@@ -61,6 +66,13 @@ module Controller (
     logic [1:0]     read_stat;
     logic [1:0]     write_stat;
     logic [1:0]     err_stat;
+
+    always_ff @(posedge ACLK or negedge ARESETn) begin
+        if (!ARESETn) busy_q <= 1'b0;
+        else          busy_q <= busy;
+    end
+    
+    assign dma_load_finish_o = (busy_q == 1'b1) && (busy == 1'b0);
 
     assign busy = (state != IDLE);
 
@@ -154,6 +166,8 @@ module Controller (
                         end
         endcase
 
+    // dma_mode = 1 -> storing data from Acc to L2
+    // dma_mode = 0 -> storing data from L2 to SP
     assign rd_trans_stat_intf.Ready = (state == STAT) && (dma_mode == 1'b0);
 
     //
