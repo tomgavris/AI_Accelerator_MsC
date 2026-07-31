@@ -1,17 +1,19 @@
 import pe_pkg::*;
 
-module single_port_ram ( 
+module single_port_ram #(
+    localparam WIDTH = DATA_WIDTH
+)( 
     input  logic                                clk, 
     input  logic                                rst, 
     input  logic        [$clog2(SRAM_SIZE)-1:0] addr,
-    input  logic signed [DATA_WIDTH-1:0]        sram_i,
+    input  logic signed [WIDTH-1:0]        sram_i,
     input  logic                                wr, 
     input  logic                                rd, 
-    output logic signed [DATA_WIDTH-1:0]        sram_o
+    output logic signed [WIDTH-1:0]        sram_o
 );
 
     
-    logic signed [DATA_WIDTH-1:0] mem [0:SRAM_SIZE-1];
+    logic signed [WIDTH-1:0] mem [0:SRAM_SIZE-1];
 
     always_ff @ (posedge clk) begin
         if (rst) begin

@@ -22,7 +22,7 @@ module double_buffer # (
     genvar i;
     generate
         for (i = 0; i < 2; i++) begin
-            single_port_ram SPRAM_I (
+            single_port_ram #(.WIDTH(DB_WIDTH)) SPRAM_I (
                 .clk(clk), 
                 .rst(rst),
                 .addr(add_wire[i]),
