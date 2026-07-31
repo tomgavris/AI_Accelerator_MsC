@@ -19,7 +19,12 @@ package pe_pkg;
     localparam ACC_SIZE = 512;
     localparam SRAM_SIZE = SP_SIZE/PARTITIONS;
     localparam CONC_ADD = M/PARTITIONS; // Concurrent addresses read from each partition
+    localparam CONC_ADD_D = CONC_ADD*N*OP; // The sum of the data read form an address
     localparam SRAM_WIDTH = CONC_ADD*N*OP*DATA_WIDTH; // One address read for each partition  
+
+    // DMA parameters
+    localparam WEIGHT_LEN = 256;
+    localparam SP_ADDR    = 32'd0;
 
     // Batch parameters
     localparam BATCH_SIZE = 64;
