@@ -1,7 +1,7 @@
 import pe_pkg::*;
 
 module concat (
-    input  logic signed [DATA_WIDTH-1:0] concat_i,
+    input  logic signed [63:0]           concat_i,
     input  logic                         clk, rst, enable, 
     output logic                         valid_o,
     output logic signed [SRAM_WIDTH-1:0] concat_o
