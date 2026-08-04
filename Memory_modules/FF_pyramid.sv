@@ -9,7 +9,7 @@ module ff_pyramid (
     genvar rows;
     generate
         for (rows = 0; rows < CONC_ADD ; rows++) begin
-            FF_chain  #(.WIDTH(), .DELAY(rows)) FF_chain_inst(
+            FF_chain  #(.DELAY(rows)) FF_chain_inst(
                 .ffc_in(ff_p_i[rows]),
                 .clk(clk),
                 .rst(rst),
@@ -24,9 +24,9 @@ module FF_chain #(
     parameter WIDTH = N*OP*DATA_WIDTH, 
     parameter DELAY = 2
 )(
-    input  logic [N-1:0][OP-1:0][DATA_WIDTH-1:0] ffc_in,
-    input  logic                                 clk, rst,
-    output logic [N-1:0][OP-1:0][DATA_WIDTH-1:0] ffc_out
+    input  logic [WIDTH-1:0] ffc_in,
+    input  logic             clk, rst,
+    output logic [WIDTH-1:0] ffc_out
 );
     
     logic [DELAY:0][WIDTH-1:0] ff_wires;
