@@ -2,7 +2,7 @@ import pe_pkg::*;
 
 module concat (
     input  logic signed [DATA_WIDTH-1:0] concat_i,
-    input  logic                         clk, rst, 
+    input  logic                         clk, rst, enable, 
     output logic                         valid_o,
     output logic signed [SRAM_WIDTH-1:0] concat_o
 );
@@ -16,17 +16,20 @@ module concat (
             valid_o  <= 1'b0;
             for (int i = 0; i < CONC_ADD; i++) raw_data[i] <= '0;
         end else begin
-            raw_data[counter] <= concat_i;
+            valid_o <= 1'b0;
+            if (enable) begin
+                raw_data[counter] <= concat_i;
 
-            if (counter == CONC_ADD-1) begin
-                for (int i = 0; i < CONC_ADD-1; i++)
-                    concat_o[i*DATA_WIDTH +: DATA_WIDTH] <= raw_data[i];
-                concat_o[(CONC_ADD-1)*DATA_WIDTH +: DATA_WIDTH] <= concat_i; 
-                valid_o <= 1'b1;
-                counter <= '0;
-            end else begin
-                valid_o <= 1'b0;
-                counter <= counter + 1'b1;
+                if (counter == CONC_ADD-1) begin
+                    for (int i = 0; i < CONC_ADD-1; i++)
+                        concat_o[i*DATA_WIDTH +: DATA_WIDTH] <= raw_data[i];
+                    concat_o[(CONC_ADD-1)*DATA_WIDTH +: DATA_WIDTH] <= concat_i; 
+                    valid_o <= 1'b1;
+                    counter <= '0;
+                end else begin
+                    valid_o <= 1'b0;
+                    counter <= counter + 1'b1;
+                end
             end
         end
     end
