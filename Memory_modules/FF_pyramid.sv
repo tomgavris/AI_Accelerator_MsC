@@ -20,9 +20,9 @@ module skewing_mod (
 endmodule
 
 module deskewing_mod (
-    input  logic signed [CONC_ADD-1:0][P_DATA_WIDTH-1:0] deskew_mod_i,
+    input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0] deskew_mod_i,
     input  logic                                         clk, rst, 
-    output logic signed [CONC_ADD-1:0][P_DATA_WIDTH-1:0] deskew_mod_o
+    output logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0] deskew_mod_o
 );
     
     genvar columns;
