@@ -20,7 +20,7 @@ endmodule
 
     
 
-module Part_rd_gen #(
+module part_rd_gen #(
     parameter int PART_ID = 0
 )(
     input  logic                          clk, rst,
