@@ -1,6 +1,6 @@
 # Systolic Array
 
-This project details the creation of a Systolic Array (**SA**), which will be used in a Artificial Intelligence (**AI**) accelerator for the purposes of my intersnhip at "Universität Bremen".
+This project details the creation of a Systolic Array (**SA**), which will be used in a Artificial Intelligence (**AI**) accelerator.
 
 ## Overview
 
@@ -48,13 +48,3 @@ Because of its unique position inside the system, the DMA has been modified in o
 
 **Concatenation module:** Despite not being a memory element itself, this module belongs in this file since its only use is concatenating incoming activation data and feeding them to the SP. 
 
-
-
-
-## Supervisor
-
-Alberto Garcia-Ortiz, Head of Chair for Microelectronics at the University of Bremen 
-
-## Guidance
-
-Sebastian Fischer, Scientific Assistant/Ph.D. Candidate
