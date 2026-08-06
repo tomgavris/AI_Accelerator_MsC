@@ -8,7 +8,7 @@ module dp_fsm (
     input  logic start_w_load_i, start_comp_i,      // Mem FSM signal
     input  logic sa_valid_i, 
 
-    output logic results_ready_o,
+    output logic results_ready_o, no_skew, 
     output logic sp_rd_o,                           // SP signals
     output logic acc_op_o, acc_hold_o, acc_state_o, // Accumulator signals
     output logic sa_wr_o, sa_comp_e_o,              // SA signals
@@ -108,6 +108,8 @@ module dp_fsm (
     always_comb begin
 
         // setting all signals to 0
+        no_skew = 0; 
+
         sp_rd_o = 0;
 
         acc_op_o = 0; 
@@ -146,6 +148,9 @@ module dp_fsm (
 
 
             W_LOAD : begin // done
+
+                        no_skew     = 1;
+
                         sp_rd_o     = 1; 
                         
                         sa_wr_o     = 1;
