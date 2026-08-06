@@ -7,11 +7,11 @@ module mem_fsm (
     input  logic results_ready_i,                   // DP FSM signal
     input  logic dma_load_finish_i,                 // DMA signal
 
-    output logic sp_wr_o, sp_state_o,
+    output logic sp_state_o,
     output logic start_w_load_o, start_comp_o,      // DP FSM signal
     output logic acc_rd,                            // Accumulator signal
-    output logic dma_go_pulse, dma_mode_o,            // DMA signal
-    output logic busy                               // RoCC translator
+    output logic dma_go_pulse, dma_mode_o,          // DMA signal
+    output logic dma_busy_o                         // RoCC translator
 );
 
     typedef enum logic [2:0] { 
@@ -69,16 +69,15 @@ module mem_fsm (
     
     always_comb begin
 
-        busy      = 1;
+        dma_busy_o = 1;
 
-        acc_rd    = 0;
+        acc_rd     = 0;
 
         dma_go_pulse = 0;
         dma_mode_o   = 0;
 
         start_w_load_o = 0;
 
-        sp_wr_o       = 0;
         sp_state_flip = 0;
 
         cnt_clr = 0;     
@@ -90,7 +89,7 @@ module mem_fsm (
         case (curr_state)
             IDLE : begin // done
 
-                busy = 0;
+                dma_busy_o = 0;
 
                 if(w_req_flag) begin
                     w_req_clr  = 1;
@@ -113,7 +112,6 @@ module mem_fsm (
             end 
 
             W_FETCH_WAIT : begin // done
-                sp_wr_o = 1;
                 if (dma_load_finish_i) begin
                     start_w_load_o = 1;
                     sp_state_flip = 1; 
@@ -130,7 +128,6 @@ module mem_fsm (
             end 
 
             A_FETCH_WAIT : begin // done
-                sp_wr_o = 1;
                 if(dma_load_finish_i) begin
                     start_comp_o = 1;
                     sp_state_flip = 1;
