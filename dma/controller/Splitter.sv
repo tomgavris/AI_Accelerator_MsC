@@ -13,7 +13,7 @@
 // =============================================================================
 module Splitter (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
 
     // Transaction Cmd/Stat Interface
@@ -44,7 +44,7 @@ module Splitter (
     //
     // Current State Register
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   state <= IDLE;
         else            state <= next;
 
@@ -80,7 +80,7 @@ module Splitter (
     //
     // Transaction Address Splitting
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)       cur_addr    <= '0;
         else case (state)
             IDLE    :   if (TransCmdIntf.Valid)
@@ -92,7 +92,7 @@ module Splitter (
     //
     // Transaction NumBytes Splitting
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   begin
                             cur_num_bytes   <= '0;
                             rem_bytes       <= '0;
@@ -121,7 +121,7 @@ module Splitter (
         endcase
 
     // Transaction Command Status
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   TransStatIntf.Data      <= '0;
         else case (state)
             IDLE    :   TransStatIntf.Data      <= '0;

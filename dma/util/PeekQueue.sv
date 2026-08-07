@@ -10,7 +10,7 @@
 module PeekQueue #(parameter DEPTH)
 (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
 
     // Abort
@@ -37,7 +37,7 @@ module PeekQueue #(parameter DEPTH)
     //
     // Internal Counter Update Logic
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
     if (!ARESETn)
         int_counter <= '0;
     else if (Abort)
@@ -60,7 +60,7 @@ module PeekQueue #(parameter DEPTH)
     //
     // Read Pointer Update Logic
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)                               int_rdptr <= '0;
         else if (Abort)                             int_rdptr <= '0;
         else if (DeqIntf.Ready & DeqIntf.Valid)     int_rdptr <= int_rdptr + 1;
@@ -68,7 +68,7 @@ module PeekQueue #(parameter DEPTH)
     //
     // Write Pointer Update Logic
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)                               int_wrptr <= '0;
         else if (Abort)                             int_wrptr <= '0;
         else if (EnqIntf.Ready & EnqIntf.Valid)     int_wrptr <= int_wrptr + 1;
@@ -76,7 +76,7 @@ module PeekQueue #(parameter DEPTH)
     //
     // Write Operation (synchronous)
     //
-    always_ff @(posedge ACLK)
+    always_ff @(posedge clk)
         if (EnqIntf.Ready & EnqIntf.Valid)  int_mem[int_wrptr]  <= EnqIntf.Data;
 
     //

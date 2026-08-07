@@ -14,7 +14,7 @@
 module DMA #(parameter FIFO_DEPTH = 256)
 (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
     
     // RoCC Interface
@@ -55,7 +55,7 @@ module DMA #(parameter FIFO_DEPTH = 256)
     ReadyValidIntf #(.DataTy(logic[1:0]))   wr_stat_intf();
 
     Controller controller_inst (
-        .ACLK               (ACLK),
+        .clk                (clk),
         .ARESETn            (ARESETn),
         .src_addr           (src_addr),
         .dst_addr           (dst_addr),
@@ -71,7 +71,7 @@ module DMA #(parameter FIFO_DEPTH = 256)
     );
 
     DataMover #(.FIFO_DEPTH(FIFO_DEPTH)) data_mover_inst (
-        .ACLK               (ACLK),
+        .clk                (clk),
         .ARESETn            (ARESETn),
         
         .dma_mode           (dma_mode_i),     

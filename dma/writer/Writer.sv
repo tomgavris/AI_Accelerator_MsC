@@ -15,7 +15,7 @@
 
 module Writer (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
 
     // Reader Cmd/Stat Interface
@@ -47,7 +47,7 @@ module Writer (
     //
     // State Register Update Logic
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   state <= IDLE;
         else            state <= next;
 
@@ -84,10 +84,18 @@ module Writer (
     //
     // AW Channel Signals
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn) begin
             WriteIntf.WrAddrValid       <= '0;
-            WriteIntf.WrAddrPayload     <= '0;
+            WriteIntf.WrAddrPayload.AWID    <= '0;
+            WriteIntf.WrAddrPayload.AWADDR  <= '0;
+            WriteIntf.WrAddrPayload.AWLEN   <= '0;
+            WriteIntf.WrAddrPayload.AWSIZE  <= '0;
+            WriteIntf.WrAddrPayload.AWBURST <= '0;
+            WriteIntf.WrAddrPayload.AWLOCK  <= '0;
+            WriteIntf.WrAddrPayload.AWCACHE <= '0;
+            WriteIntf.WrAddrPayload.AWPROT  <= '0;
+
         end
         else begin
             case (state)
@@ -109,7 +117,7 @@ module Writer (
         end
 
     // Status Capture from Write Response
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)               write_resp  <= '0;
         else begin
             case (state)
@@ -128,7 +136,7 @@ module Writer (
     end
 
     // num_bytes
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)       num_bytes   <= '0;
         else case (state)
             IDLE    :   if (CmdIntf.Valid)

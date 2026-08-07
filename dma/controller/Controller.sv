@@ -13,7 +13,7 @@
 // =============================================================================
 module Controller (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
 
     // RoCC Interface
@@ -67,7 +67,7 @@ module Controller (
     logic [1:0]     write_stat;
     logic [1:0]     err_stat;
 
-    always_ff @(posedge ACLK or negedge ARESETn) begin
+    always_ff @(posedge clk or negedge ARESETn) begin
         if (!ARESETn) busy_q <= 1'b0;
         else          busy_q <= busy;
     end
@@ -80,7 +80,7 @@ module Controller (
     // Transaction Splitter for Read Engine
     //
     Splitter read_splitter (
-        .ACLK           (ACLK),
+        .clk           (clk),
         .ARESETn        (ARESETn),
         .TransCmdIntf   (rd_trans_cmd_intf),
         .TransStatIntf  (rd_trans_stat_intf),
@@ -92,7 +92,7 @@ module Controller (
     // Transaction Splitter for Write Engine
     //
     Splitter write_splitter (
-        .ACLK           (ACLK),
+        .clk           (clk),
         .ARESETn        (ARESETn),
         .TransCmdIntf   (wr_trans_cmd_intf),
         .TransStatIntf  (wr_trans_stat_intf),
@@ -103,7 +103,7 @@ module Controller (
     //
     // State Register Update
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   state <= IDLE;
         else            state <= next;
 
@@ -135,7 +135,7 @@ module Controller (
     //
     // Error Status Code
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)       err_stat    <= '0;
         else case(state)
             IDLE    :   if (go_pulse && (length == '0))
@@ -147,7 +147,7 @@ module Controller (
     //
     // Read Status
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn) begin
             read_stat_posted    <= '0;
             read_stat           <= '0;
@@ -173,7 +173,7 @@ module Controller (
     //
     // Write Status
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn) begin
             write_stat_posted    <= '0;
             write_stat           <= '0;
@@ -199,7 +199,7 @@ module Controller (
     //
     // Read Command
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   begin
             read_cmd_posted             <= '0;
             rd_trans_cmd_intf.Valid     <= '0;
@@ -234,7 +234,7 @@ module Controller (
     //
     // Write Command
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   begin
             write_cmd_posted            <= '0;
             wr_trans_cmd_intf.Valid     <= '0;

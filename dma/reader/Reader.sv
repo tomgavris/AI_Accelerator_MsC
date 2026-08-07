@@ -14,7 +14,7 @@
 // =============================================================================
 module Reader (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
 
     // Reader Cmd/Stat Interface
@@ -44,7 +44,7 @@ module Reader (
     //
     // State Register Update Logic
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   state <= IDLE;
         else            state <= next;
 
@@ -77,10 +77,18 @@ module Reader (
     //
     // AR Channel Control Signals
     //
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn) begin
-            ReadIntf.RdAddrValid    <= '0;
-            ReadIntf.RdAddrPayload  <= '0;
+            ReadIntf.RdAddrValid    <= 1'b0;
+            ReadIntf.RdAddrPayload.ARID     <= '0;
+            ReadIntf.RdAddrPayload.ARADDR   <= '0;
+            ReadIntf.RdAddrPayload.ARLEN    <= '0;
+            ReadIntf.RdAddrPayload.ARSIZE   <= '0;
+            ReadIntf.RdAddrPayload.ARBURST  <= '0;
+            ReadIntf.RdAddrPayload.ARLOCK   <= '0;
+            ReadIntf.RdAddrPayload.ARCACHE  <= '0;
+            ReadIntf.RdAddrPayload.ARPROT   <= '0;
+
         end
         else begin
             case (state)
@@ -103,7 +111,7 @@ module Reader (
 
     // Internal read response error accumulation.
     // We make read errors sticky
-    always_ff @(posedge ACLK or negedge ARESETn)
+    always_ff @(posedge clk or negedge ARESETn)
         if (!ARESETn)   read_resp <= '0;
         else
             case (state)

@@ -12,7 +12,7 @@
 // =============================================================================
 module DataMover #(parameter FIFO_DEPTH = 256) (
     // Clock and Reset
-    input   logic           ACLK,
+    input   logic           clk,
     input   logic           ARESETn,
 
     // Reader Cmd/Stat Interface
@@ -49,7 +49,7 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
     ReadyValidIntf #(.DataTy(Packet_t))     reader_data_intf();
 
     Reader reader_inst (
-        .ACLK           (ACLK),
+        .clk            (clk),
         .ARESETn        (ARESETn),
         .CmdIntf        (RdCmdIntf),
         .StatIntf       (RdStatIntf),
@@ -71,10 +71,9 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
             // -------------------------------------------------------------
             // STORE MODE: Accumulator writes directly into the FIFO
             // -------------------------------------------------------------
-            fifoEnqIntf.Valid       = acc_valid_i;
-            fifoEnqIntf.Data.Data   = acc_data_i; 
-            fifoEnqIntf.Data.Last   = 1'b0;         
-            acc_ready_o             = fifoEnqIntf.Ready;
+            fifoEnqIntf.Valid = acc_valid_i;
+            fifoEnqIntf.Data  = acc_data_i;      
+            acc_ready_o       = fifoEnqIntf.Ready;
         end 
         else begin
             // -------------------------------------------------------------
@@ -83,7 +82,7 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
             sp_valid_o              = reader_data_intf.Valid;
             
             // Extract the raw 64-bit payload from the DMA's Packet struct
-            sp_data_o               = reader_data_intf.Data.Data; 
+            sp_data_o               = reader_data_intf.Data; 
             
             // Route the SP's backpressure directly to the AXI Reader
             reader_data_intf.Ready  = sp_ready_i;
@@ -91,7 +90,7 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
     end
 
     PeekQueue #(.DEPTH(FIFO_DEPTH)) peek_queue_inst (
-        .ACLK           (ACLK),
+        .clk            (clk),
         .ARESETn        (ARESETn),
         .Abort          (1'b0),
         .EnqIntf        (fifoEnqIntf),
@@ -99,7 +98,7 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
     );
 
     Writer writer_inst (
-        .ACLK           (ACLK),
+        .clk              (clk),
         .ARESETn        (ARESETn),
         .CmdIntf        (WrCmdIntf),
         .StatIntf       (WrStatIntf),
