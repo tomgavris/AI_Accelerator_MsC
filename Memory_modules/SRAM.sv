@@ -1,7 +1,7 @@
 import pe_pkg::*;
 
 module single_port_ram #(
-    localparam WIDTH = DATA_WIDTH
+    parameter WIDTH = DATA_WIDTH
 )( 
     input  logic                                clk, 
     input  logic                                rst, 
@@ -13,7 +13,7 @@ module single_port_ram #(
 );
 
     
-    logic signed [WIDTH-1:0] mem [0:SRAM_SIZE-1];
+    logic signed [SRAM_SIZE-1:0][WIDTH-1:0] mem ;
 
     always_ff @ (posedge clk) begin
         if (rst) begin
