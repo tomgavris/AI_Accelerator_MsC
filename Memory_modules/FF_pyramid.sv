@@ -30,7 +30,7 @@ module deskewing_mod (
         
         for (columns = 0; columns < M; columns++) begin
             FF_chain  #(
-                .WIDTH(P_DATA_WIDTH),         
+                .WIDTH(N*P_DATA_WIDTH),         
                 .DELAY(M - columns - 1)       
             ) FF_chain_inst(
                 .ffc_in(deskew_mod_i[columns]),
