@@ -24,9 +24,9 @@ module part_rd_gen #(
     parameter int PART_ID = 0
 )(
     input  logic                          clk, rst,
-    input  logic                          sp_rd_i,      // from mem_fsm, shared
-    output logic                          sp_rd_o,      // -> BANKED_SP.sp_rd_i[PART_ID]
-    output logic [$clog2(SRAM_SIZE)-1:0]  sp_rd_add_o   // -> BANKED_SP.sp_rd_add[PART_ID]
+    input  logic                          sp_rd_i,      
+    output logic                          sp_rd_o,      
+    output logic [$clog2(SRAM_SIZE)-1:0]  sp_rd_add_o   
 );
     logic delayed_rd;
     logic [$clog2(SRAM_SIZE)-1:0] addr_cnt;
