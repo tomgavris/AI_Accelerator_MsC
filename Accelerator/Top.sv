@@ -41,42 +41,43 @@ module top (
     // Mem FSM to DMA
     logic        dma_go_pulse, dma_mode;        
     logic        dma_load_finish, dma_busy; 
+    logic        weight_fetch;
+    logic [31:0] seq_src_addr, seq_length, seq_dst_addr;
 
-    // Control to Scratchpad
-    logic sp_rd, sp_wr, sp_state;
-    logic [PARTITIONS-1:0] sp_wr_en_onehot; 
+    // Control to Scratchpads
+    logic                   a_sp_state, w_sp_state;
+    logic                   sp_rd, w_sp_rd, w_sp_rd_o;
+    logic                   a_sp_wr, w_sp_wr;
+    logic [PARTITIONS-1:0]  sp_wr_en_onehot; 
+    logic                   w_sp_wr_en;
+    logic                   a_SP_wr_clr;
     
-    // DMA to Scratchpad
-    logic [63:0]          raw_dma_data;
-    logic                 raw_dma_valid;
-    logic [SRAM_WIDTH-1:0] sp_dma_data;
+    // Data: DMA to Concat to Scratchpads
+    logic [63:0]                     raw_dma_data;
+    logic                            w_raw_dma_valid, a_raw_dma_valid;
+    logic [SRAM_WIDTH-1:0]           sp_dma_data;
+    logic [M*N*N*OP*DATA_WIDTH-1:0]  w_sp_data;
 
     // Memory Counters 
     logic [PARTITIONS-1:0][$clog2(SRAM_SIZE)-1:0] sp_wr_add; 
     logic [PARTITIONS-1:0][$clog2(SRAM_SIZE)-1:0] sp_rd_add;
-    logic [PARTITIONS-1:0][$clog2(SRAM_SIZE)-1:0] sp_rd_skewed;
+    logic [PARTITIONS-1:0]                        sp_rd_skewed;
     
-    
-    logic sp_wr_clear;
-    assign sp_wr_clear = dma_go_pulse & ~dma_mode; 
-    
-    // Scratchpad to Systolic Array
-    logic        sp_ready, sp_valid;
-    logic signed [PARTITIONS-1:0][DATA_WIDTH-1:0] sp_o;
+    logic [$clog2(WEIGHT_SP_SIZE)-1:0]            w_sp_wr_add;
+    logic [$clog2(WEIGHT_SP_SIZE)-1:0]            w_sp_rd_add;
 
     // Control to Accumulator
     logic acc_op, acc_hold, acc_state, acc_rd;
-
     logic [$clog2(ACC_SIZE)-1:0] acc_wr_addr;
-    logic [$clog2(ACC_SIZE)-1:0] acc_rd_addr;
 
     // DP FSM to Systolic Array
     logic        sa_wr_wire, sa_comp_wire;
+    logic        dp_busy_wire;
 
     // Handshakes: SA and Accumulator
     logic        sa_acc_handshake; 
     
-    // Systolic Array to Accumulator
+    // Systolic Array Datapath Wires
     logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0] sa_results;
     logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0] acc_results_i;
     
@@ -91,12 +92,9 @@ module top (
     logic [63:0]                          dma_acc_data; 
 
     // Skewing Wires
-    logic                                                               no_skew_wire;
-    logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                 sa_i_wire;
-    logic signed [PARTITIONS-1:0][CONC_ADD-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  unskewed_data;
-    logic signed [CONC_ADD-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]          skewed_data;
-
-    assign sa_i_wire = no_skew_wire ? skewed_data : unskewed_data;
+    logic                                                                       no_skew_wire;
+    logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                         sa_i_wire;
+    logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                         skewed_data;
 
     // Valid Signal Delay Pipeline
     localparam VALID_DELAY = M - 1;
@@ -122,46 +120,59 @@ module top (
         .clk(clk), 
         .rst(rst),
         .start_w_i(start_w), 
-        .start_a_i(start_a),                   
-        .results_ready_i(results_ready),                     
+        .start_a_i(start_a),
+        .results_ready_i(results_ready), 
         .dma_load_finish_i(dma_load_finish),
-        .sp_state_o(sp_state),
+        .dp_busy_i(dp_busy_wire),
+        .rocc_src_addr_i(dma_src_addr[31:0]), 
+        .rocc_length_i(dma_length), 
+        .rocc_dst_addr_i(dma_dst_addr),
+        .a_sp_state_o(a_sp_state), 
+        .w_sp_state_o(w_sp_state), 
         .start_w_load_o(start_w_load), 
-        .start_comp_o(start_comp),          
-        .acc_rd(acc_rd),                            
-        .dma_go_pulse(dma_go_pulse),
-        .dma_mode_o(dma_mode),                      
-        .dma_busy_o(dma_busy)              
+        .start_comp_o(start_comp),
+        .acc_rd(acc_rd), 
+        .weight_fetch_o(weight_fetch),
+        .dma_go_pulse(dma_go_pulse), 
+        .dma_mode_o(dma_mode), 
+        .dma_busy_o(dma_busy),
+        .dma_src_addr_o(seq_src_addr), 
+        .dma_length_o(seq_length), 
+        .dma_dst_addr_o(seq_dst_addr)
     );
+
 
     dp_fsm dp_fsm_inst (
         .clk(clk), 
         .rst(rst),
         .stop_comp_i(stop_comp), 
-        .cu_hold_i(cu_hold),              
-        .start_w_load_i(start_w_load),
-        .start_comp_i(start_comp),        
+        .cu_hold_i(cu_hold),
+        .start_w_load_i(start_w_load), 
+        .start_comp_i(start_comp),
         .sa_valid_i(sa_acc_handshake), 
         .no_skew(no_skew_wire),
-        .results_ready_o(results_ready),
-        .sp_rd_o(sp_rd),                
+        .results_ready_o(results_ready), 
+        .a_sp_rd_o(sp_rd),
+        .w_sp_rd_o(w_sp_rd),
         .acc_op_o(acc_op), 
         .acc_hold_o(acc_hold), 
-        .acc_state_o(acc_state),       
+        .acc_state_o(acc_state),
         .sa_wr_o(sa_wr_wire), 
         .sa_comp_e_o(sa_comp_wire),
-        .out_count(acc_wr_addr)
+        .out_count(acc_wr_addr),
+        .in_cnt_clr_o(a_SP_wr_clr), 
+        .dp_busy_o(dp_busy_wire)
     );
 
     
     // Data Path Core
     DPPE_SA DPPE_SA_inst (
-        .sa_a_i(sa_i_wire),
+        .sa_a_i(skewed_data),
         .clk(clk), 
         .sa_rst(rst), 
         .sa_wr_e(sa_wr_wire), 
         .sa_comp_e(sa_comp_wire),
-        .sa_w_i('0), // Will change for multiple tiles
+        .sa_w_i(weights), 
         .sa_valid_o(sa_acc_handshake),
         .sa_a_o(), 
         .sa_parsum_o(sa_results) 
@@ -174,6 +185,7 @@ module top (
         .hold(acc_hold), 
         .state(acc_state),
         .valid_i(delayed_sa_acc_handshake), 
+        .dma_ready_i(dma_ready_wire),
         .acc_rd(acc_rd),
         .acc_wr_addr(acc_wr_addr), 
         .acc_rd_addr(acc_wr_addr), 
@@ -184,47 +196,72 @@ module top (
     );
 
     DMA DMA_inst (
-        .ACLK(clk),
-        .ARESETn(~rst),
-        .src_addr(dma_src_addr[31:0]),
-        .dst_addr(dma_dst_addr),
-        .length(dma_length),
-        .go_pulse(dma_go_pulse), 
-        .dma_mode_i(dma_mode), 
-        .acc_data_i(dma_acc_data), 
-        .acc_valid_i(acc_valid_wire),
-        .acc_ready_o(dma_acc_ready_out),
-        .sp_ready_i(1'b1), 
-        .sp_data_o(raw_dma_data),
-        .sp_valid_o(raw_dma_valid),
-        .busy(), // Left unconnected so mem_fsm has exclusive control
-        .dma_load_finish_o(dma_load_finish),
-        .AxiReadIntf(AxiReadIntf),
-        .AxiWriteIntf(AxiWriteIntf)
-    );
+    .clk(clk), .ARESETn(~rst),
+    .src_addr(seq_src_addr[31:0]),
+    .dst_addr(seq_dst_addr),
+    .length(seq_length),
+    .go_pulse(dma_go_pulse), 
+    .dma_mode_i(dma_mode),
+    .acc_data_i(dma_acc_data), 
+    .acc_valid_i(acc_valid_wire),
+    .acc_ready_o(dma_acc_ready_out),
+    .sp_ready_i(1'b1),
+    .weight_fetch_i(weight_fetch),
+    .sp_data_o(raw_dma_data), 
+    .w_sp_valid_o(w_raw_dma_valid),
+    .a_sp_valid_o(a_raw_dma_valid),
+    .busy(),
+    .dma_load_finish_o(dma_load_finish),
+    .AxiReadIntf(AxiReadIntf), 
+    .AxiWriteIntf(AxiWriteIntf)
+);
+
     
-    BANKED_SP BANKED_SP_inst (
+    activations_sp activations_sp_inst (
         .clk(clk), 
         .rst(rst), 
         .sp_i({PARTITIONS{sp_dma_data}}), 
-        .sp_rd_i(), 
+        .sp_rd_i(sp_rd_skewed), 
         .sp_wr_i(sp_wr_en_onehot),        
-        .sp_state_i(sp_state),  
+        .sp_state_i(a_sp_state),  
         .sp_wr_add(sp_wr_add), 
-        .sp_rd_add(sp_rd_skewed), 
+        .sp_rd_add(sp_rd_add), 
         .sp_ready_o(), 
         .sp_valid_o(), 
-        .sp_o(unskewed_data)
+        .sp_o(activations)
+    );
+
+    weights_sp weights_sp_inst (
+        .clk(clk), 
+        .rst(rst), 
+        .sp_i(w_sp_data), 
+        .sp_rd_i(w_sp_rd_o),  
+        .sp_wr_i(w_sp_wr_en),      
+        .sp_state_i(w_sp_state), 
+        .sp_wr_add(w_sp_wr_add), 
+        .sp_rd_add(w_sp_rd_add), 
+        .sp_ready_o(), 
+        .sp_valid_o(), 
+        .sp_o(weights)
     );
 
     
-    sp_wr_counter sp_wr_counter_inst (
+    a_SP_wr_count a_SP_wr_count_inst (
         .clk(clk),
         .rst(rst),
-        .sp_wr_i(sp_wr),
-        .clear_i(sp_wr_clear),
+        .sp_wr_i(a_sp_wr),
+        .clear_i(a_SP_wr_clr),
         .sp_wr_add_o(sp_wr_add),
         .sp_wr_en_o(sp_wr_en_onehot)
+    );
+
+    w_SP_wr_count w_SP_wr_count_inst (
+        .clk(clk),
+        .rst(rst),
+        .sp_wr_i(w_sp_wr),
+        .clear_i(start_w_load), 
+        .sp_wr_add_o(w_sp_wr_add),
+        .sp_wr_en_o(w_sp_wr_en)
     );
 
     RoCCTran RoCCTran_inst (
@@ -255,7 +292,7 @@ module top (
     generate
         for(part = 0; part < PARTITIONS; part++) begin
             skewing_mod skewing_mod_inst(
-                .skew_mod_i(unskewed_data[part]),
+                .skew_mod_i(activations[part]),
                 .clk(clk), 
                 .rst(rst),
                 .skew_mod_o(skewed_data[part*CONC_ADD +: CONC_ADD])
@@ -277,6 +314,16 @@ module top (
         .sp_rd_o(sp_rd_skewed), 
         .sp_rd_add_o(sp_rd_add)
     );
+
+    Weight_sp_rd Weight_sp_rd_inst (
+        .clk(clk), 
+        .rst(rst),
+        .clear_i(start_w_load), 
+        .sp_rd_i(w_sp_rd),     
+        .sp_rd_o(w_sp_rd_o), 
+        .sp_rd_add_o(w_sp_rd_add)
+    );
+
 
     // Output Datapath 
     Quantizer Quantizer_inst (
@@ -307,25 +354,25 @@ module top (
         end
     endgenerate
 
-    generate
-        if (SRAM_WIDTH == 64) begin
-            // SCENARIO 1: SRAM_WIDTH == 64
-            // Bypass the Concat module
-            assign sp_dma_data = raw_dma_data;
-            assign sp_wr       = raw_dma_valid;
-            
-        end else begin
-            // SCENARIO 2: SRAM_WIDTH > 64 
-            // Use Concat 
-            concat concat_inst (
-                .concat_i(raw_dma_data),
-                .clk(clk), 
-                .rst(rst),
-                .enable(raw_dma_valid), 
-                .valid_o(sp_wr),
-                .concat_o(sp_dma_data)
-            );
-        end
-    endgenerate
+    
+    concat weight_concat_inst (
+        .concat_i(raw_dma_data),
+        .clk(clk), 
+        .rst(rst),
+        .enable(w_raw_dma_valid), // From DMA
+        .valid_o(w_sp_wr),
+        .concat_o(w_sp_data)
+    );
+
+
+    concat #(.CONCAT_WIDTH(SRAM_WIDTH))
+        activations_concat_inst (        
+        .concat_i(raw_dma_data),
+        .clk(clk),                         
+        .rst(rst),
+        .enable(a_raw_dma_valid), // From DMA
+        .valid_o(a_sp_wr),
+        .concat_o(sp_dma_data)
+    );        
 
 endmodule
