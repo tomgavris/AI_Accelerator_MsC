@@ -5,11 +5,10 @@ module Quantizer (
     output logic signed [(M*N*DATA_WIDTH)-1:0]   quantize_o
 );
     localparam signed [DATA_WIDTH-1:0]          MAX_VAL =  (1 << (DATA_WIDTH-1)) - 1;
-    localparam signed [DATA_WIDTH-1:0]          MIN_VAL = -(1 >> (DATA_WIDTH-1));
-    logic signed      [(M*N*P_DATA_WIDTH)-1:0]  temp;
+    localparam signed [DATA_WIDTH-1:0]          MIN_VAL = -(1 <<< (DATA_WIDTH-1));  
 
     always_comb begin 
-        for(in i = 0; i < M*N; i++) begin
+        for(int i = 0; i < M*N; i++) begin
             logic signed [P_DATA_WIDTH-1:0] current_val;
             logic signed [P_DATA_WIDTH-1:0] shifted_val;
             
