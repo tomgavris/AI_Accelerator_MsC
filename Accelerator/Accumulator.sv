@@ -13,17 +13,18 @@ module accumulator(
 
       input  logic                                  valid_i, // SA
       input  logic                                  dma_ready_i, 
-      input  logic        [$clog2(SRAM_SIZE)-1:0]   acc_wr_addr, acc_rd_addr,
+      input  logic        [$clog2(ACC_SIZE)-1:0]    acc_wr_addr, acc_rd_addr,
       input  logic signed [(M*N*P_DATA_WIDTH)-1:0]  acc_i,
       output logic                                  valid_o, acc_ready,
       output logic signed [(M*N*P_DATA_WIDTH)-1:0]  acc_o
   );
+  localparam ACC_SIZE = 2*BATCH_SIZE;
 
   logic signed [(M*N*P_DATA_WIDTH)-1:0] acc_data_reg, acc_res_w, m_o_w;
-  logic [$clog2(SRAM_SIZE)-1:0]         wr_add_reg;
+  logic [$clog2(ACC_SIZE)-1:0]          wr_add_reg;
   logic                                 op_reg, valid_reg;
 
-  logic [$clog2(SRAM_SIZE)-1:0] drain_addr;
+  logic [$clog2(ACC_SIZE)-1:0]  drain_addr;
   logic                         drain_active;
 
   assign acc_ready = 1'b1;
@@ -46,19 +47,18 @@ module accumulator(
   end
 
   double_buffer #(
-    .DB_WIDTH(M*N*P_DATA_WIDTH)
+    .DB_WIDTH(M*N*P_DATA_WIDTH),
+    .DB_SIZE(ACC_SIZE)
   ) double_buffer_i(
         .clk(clk), 
         .rst(rst),
         .db_wr_add(wr_add_reg),
         
-        // Internal counter for DMA drain, external for accumulation
         .db_rd_add(acc_rd ? drain_addr : acc_rd_addr),
         
         .db_i(acc_res_w),
         .db_wr(valid_reg), 
         
-        // Read during accumulation (op) AND draining (acc_rd)
         .db_rd(acc_rd | op), 
         
         .db_ready(), 
