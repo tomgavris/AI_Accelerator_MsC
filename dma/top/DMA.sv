@@ -31,8 +31,10 @@ module DMA #(parameter FIFO_DEPTH = 256)
 
     // SP Interface
     input   logic           sp_ready_i,
+    input   logic           weight_fetch_i,
     output  logic [63:0]    sp_data_o,
-    output  logic           sp_valid_o,
+    output  logic           w_sp_valid_o, 
+    output  logic           a_sp_valid_o,
     
 
     output  logic           busy,
@@ -63,7 +65,7 @@ module DMA #(parameter FIFO_DEPTH = 256)
         .go_pulse           (go_pulse), 
         .busy               (busy),
         .dma_load_finish_o  (dma_load_finish_o),
-        .dma_mode           (dma_mode),
+        .dma_mode           (dma_mode_i),
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),
         .WrCmdIntf          (wr_cmd_intf),
@@ -79,9 +81,11 @@ module DMA #(parameter FIFO_DEPTH = 256)
         .acc_valid_i        (acc_valid_i),  
         .acc_ready_o        (acc_ready_o),  
 
+        .weight_fetch_i     (weight_fetch_i),
         .sp_ready_i         (sp_ready_i),
         .sp_data_o          (sp_data_o),
-        .sp_valid_o         (sp_valid_o),
+        .w_sp_valid_o       (w_sp_valid_o),
+        .a_sp_valid_o       (a_sp_valid_o),
 
         .RdCmdIntf          (rd_cmd_intf),
         .RdStatIntf         (rd_stat_intf),

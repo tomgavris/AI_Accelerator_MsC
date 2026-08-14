@@ -28,8 +28,10 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
 
     // SP Interface
     input   logic           sp_ready_i,
+    input   logic           weight_fetch_i,
     output  logic [63:0]    sp_data_o,
-    output  logic           sp_valid_o,
+    output  logic           w_sp_valid_o, 
+    output  logic           a_sp_valid_o,
 
     // Writer Cmd/Stat Interface
     ReadyValidIntf.Slave    WrCmdIntf,
@@ -64,7 +66,8 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
         acc_ready_o             = 1'b0;
         
         reader_data_intf.Ready  = 1'b0;
-        sp_valid_o              = 1'b0;
+        w_sp_valid_o            = 1'b0;
+        a_sp_valid_o            = 1'b0;
         sp_data_o               = '0;
 
         if (dma_mode == 1'b1) begin
@@ -76,15 +79,12 @@ module DataMover #(parameter FIFO_DEPTH = 256) (
             acc_ready_o       = fifoEnqIntf.Ready;
         end 
         else begin
-            // -------------------------------------------------------------
-            // FETCH MODE: AXI Reader writes directly to the SP (Bypass FIFO)
-            // -------------------------------------------------------------
-            sp_valid_o              = reader_data_intf.Valid;
-            
-            // Extract the raw 64-bit payload from the DMA's Packet struct
+            if(weight_fetch_i) begin
+                w_sp_valid_o              = reader_data_intf.Valid;
+            end
+            else a_sp_valid_o = reader_data_intf.Valid;
+
             sp_data_o               = reader_data_intf.Data; 
-            
-            // Route the SP's backpressure directly to the AXI Reader
             reader_data_intf.Ready  = sp_ready_i;
         end
     end
