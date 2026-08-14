@@ -28,6 +28,7 @@ logic signed [N-1:0][P_DATA_WIDTH-1:0]               p_reg;
 always_ff @( posedge clk ) begin 
     if (rst) begin
         dppe_wr_e_o <= 0;
+        comp_e_o    <= 0;
         for (int i = 0 ; i < N ; i++) begin
             for (int j = 0; j < N ; j++) begin
                 weight_reg[i][j] <= '0; 
