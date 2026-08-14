@@ -20,20 +20,16 @@ module a_SP_wr_count (
             bank_count <= '0;
         end 
         else if (sp_wr_i) begin
-            if (word_count == SRAM_SIZE - 1) begin
-                word_count <= '0;
-                
                 if (bank_count == PARTITIONS - 1) begin
-                    bank_count <= '0; 
-                end else begin
+                    bank_count <= '0;
+                    if (word_count == SRAM_SIZE - 1) word_count <= '0;
+                    else                             word_count <= word_count + 1'b1;
+                end
+                else begin
                     bank_count <= bank_count + 1'b1;
                 end
-            end 
-            else begin
-                word_count <= word_count + 1'b1;
             end
         end
-    end
 
     genvar i;
     generate
