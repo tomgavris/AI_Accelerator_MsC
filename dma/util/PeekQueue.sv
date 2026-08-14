@@ -24,9 +24,10 @@ module PeekQueue #(parameter DEPTH)
 );
 
     // Local Parameters
-    localparam  ADDR_WIDTH  = clog2(DEPTH);
+    // FIX: Upgraded to SystemVerilog's native $clog2() function
+    localparam  ADDR_WIDTH  = $clog2(DEPTH);
 
-    // Internal Signalsand Registers
+    // Internal Signals and Registers
     logic [ADDR_WIDTH:0]    int_counter;
     logic [ADDR_WIDTH-1:0]  int_rdptr;
     logic [ADDR_WIDTH-1:0]  int_wrptr;
@@ -83,16 +84,5 @@ module PeekQueue #(parameter DEPTH)
     // Read Operation (asynchronous)
     //
     assign DeqIntf.Data = int_mem[int_rdptr];
-
-    //
-    // clog2 function
-    //
-    function integer clog2 (input integer value);
-        begin
-            value = value - 1;
-            for (clog2 = 0; value > 0; clog2 = clog2 + 1)
-                value = value >> 1;
-        end
-    endfunction
 
 endmodule

@@ -31,6 +31,6 @@ package DmaPkg;
     //
     // Reader-Queue-Writer Packet type
     //
-    typedef logic [SRAM_WIDTH-1:0] Packet_t;
+    typedef logic [63:0] Packet_t;
 
 endpackage

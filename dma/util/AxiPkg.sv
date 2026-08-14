@@ -19,9 +19,9 @@ package AxiPkg;
     // Write Data Channel
     //
     typedef struct packed {
-        logic   [SRAM_WIDTH-1:0]     WDATA;
-        logic   [(SRAM_WIDTH/8)-1:0] WSTRB;
-        logic                        WLAST;
+        logic   [63:0]      WDATA;
+        logic   [7:0]       WSTRB;
+        logic               WLAST;
     } AxiWrData_t;
 
     //
@@ -51,7 +51,7 @@ package AxiPkg;
     //
     typedef struct packed {
         logic   [1:0]            RID;
-        logic   [SRAM_WIDTH-1:0] RDATA;
+        logic   [63:0]           RDATA;
         logic   [1:0]            RRESP;
         logic                    RLAST;
     } AxiRdData_t;
