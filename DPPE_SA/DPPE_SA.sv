@@ -20,15 +20,14 @@ module DPPE_SA (
         if(sa_rst) begin
             counter <= '0;
             sa_valid_o <= 0;
-        end 
+        end
         else if (sa_comp_e) begin
-            if(counter == (M-1)) begin // TODO: revisit the counter condition. Maybe change the (M-1)
-                sa_valid_o <= 1;
-            end
-            else begin
-                counter <= counter + 1; 
-                sa_valid_o <= 0;
-            end 
+            if(counter == (M-1)) sa_valid_o <= 1;
+            else begin counter <= counter + 1; sa_valid_o <= 0; end
+        end
+        else begin
+            counter    <= '0;
+            sa_valid_o <= 1'b0;
         end
     end
 
@@ -42,6 +41,12 @@ module DPPE_SA (
                     assign sa_a_o[i][j][k]    = a_wires[i][M][j][k];
                 end
             end
+        end
+    endgenerate
+
+    generate
+        for (j = 0; j < M; j++) begin
+            assign p_wires[0][j] = '0;
         end
     endgenerate
 
