@@ -17,7 +17,7 @@ At its current stage, a Concatenation module is also used before the SP. The rea
 The schematic of the current accelerator architecture can be seen in the picture below, the dotted lines seperating the accelerator from its environment.
 
 <p align="center">
-  <img src="Assets/Accelerator_Schematic.png" alt="Project Screenshot" width="900">
+  <img src="Assets/SA.png" alt="Project Screenshot" width="900">
 </p>
 
 
