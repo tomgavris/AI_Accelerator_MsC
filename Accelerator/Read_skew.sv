@@ -11,12 +11,40 @@ module Read_skew (
     generate
         for (part = 0; part < PARTITIONS; part++) begin : g_part
             part_rd_gen #(.PART_ID(part)) part_rd_gen_inst (
-                .clk(clk), .rst(rst), .sp_rd_i(sp_rd_i),
+                .clk(clk), .rst(rst || clear_i), .sp_rd_i(sp_rd_i),
                 .sp_rd_o(sp_rd_o[part]), .sp_rd_add_o(sp_rd_add_o[part])
             );
         end
     endgenerate
 endmodule
+
+module Weight_sp_rd (
+    input  logic                                clk, rst,
+    input  logic                                sp_rd_i,     // from mem_fsm
+    input  logic                                clear_i,
+    output logic                                sp_rd_o,
+    output logic [$clog2(WEIGHT_SP_SIZE)-1:0]   sp_rd_add_o
+);
+
+    logic [$clog2(WEIGHT_SP_SIZE)-1:0] count;
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            count <= '0;
+        end 
+        else if (sp_rd_i) begin
+            if (count == WEIGHT_SP_SIZE - 1) begin
+                count <= '0;
+            end 
+            else begin
+                count <= count + 1'b1;
+            end
+        end
+    end
+
+    assign sp_rd_add_o = count;
+    assign sp_rd_o  = sp_rd_i;
+endmodule
+
 
     
 
