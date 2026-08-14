@@ -1,13 +1,15 @@
 import pe_pkg::*;
 
-module concat (
-    input  logic signed [63:0]           concat_i,
-    input  logic                         clk, rst, enable, 
-    output logic                         valid_o,
-    output logic signed [SRAM_WIDTH-1:0] concat_o
+module concat #(
+    parameter CONCAT_WIDTH = M*N*N*OP*DATA_WIDTH
+    )(
+    input  logic signed [63:0]              concat_i,
+    input  logic                            clk, rst, enable, 
+    output logic                            valid_o,
+    output logic signed [CONCAT_WIDTH-1:0]  concat_o
 );
     // Chunks paremeter shields the module from running it problems with other parameters
-    localparam CHUNKS = SRAM_WIDTH / 64;
+    localparam CHUNKS = CONCAT_WIDTH / 64;
 
     logic [$clog2(CHUNKS+1)-1:0]   counter;
     logic [CHUNKS-1:0][63:0]       raw_data;
