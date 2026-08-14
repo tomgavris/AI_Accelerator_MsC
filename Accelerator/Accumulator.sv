@@ -5,8 +5,7 @@ module accumulator(
       
       // Data Path FSM Interface
       input  logic                                  op, 
-      input  logic                                  hold, 
-      // input  logic                                  state,
+      input  logic                                  hold,
 
       // Memory FSM Interface
       input  logic                                  acc_rd,
