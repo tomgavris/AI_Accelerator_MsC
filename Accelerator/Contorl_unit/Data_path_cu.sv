@@ -1,18 +1,16 @@
 import pe_pkg::*;
 
-// For compute commands an sa_busy signal will have to be added to the port list
-
 module dp_fsm (
-    input  logic clk, rst, 
-    input  logic stop_comp_i, cu_hold_i,            // RoCC Tran. signals
-    input  logic start_w_load_i, start_comp_i,      // Mem FSM signal
-    input  logic sa_valid_i, 
+    input  logic                            clk, rst, 
+    input  logic                            stop_comp_i, cu_hold_i,            // RoCC Tran. signals
+    input  logic                            start_w_load_i, start_comp_i,      // Mem FSM signal
+    input  logic                            sa_valid_i, 
 
-    output logic results_ready_o, no_skew, 
-    output logic sp_rd_o,                           // SP signals
-    output logic acc_op_o, acc_hold_o, acc_state_o, // Accumulator signals
-    output logic sa_wr_o, sa_comp_e_o,              // SA signals
-    output logic out_count                          // Accumulator addressing
+    output logic                            results_ready_o, no_skew, dp_busy_o,
+    output logic                            w_sp_rd_o, a_sp_rd_o,              // SP signals
+    output logic                            acc_op_o, acc_hold_o, acc_state_o, // Accumulator signals
+    output logic                            sa_wr_o, sa_comp_e_o,              // SA signals
+    output logic [$clog2(BATCH_SIZE)-1:0]   out_count                          // Accumulator addressing
 );
 
     typedef enum logic [1:0] { 
@@ -25,11 +23,12 @@ module dp_fsm (
     
     logic [$clog2(M)-1:0]          sp_count;
     logic [$clog2(BATCH_SIZE)-1:0] in_count;
-    logic                          in_cnt_clr, out_cnt_clr; 
-    logic                          count_en, cnt_clr, comp_count_en, k_increase, in_count_en, k_clear;
+    logic                          out_cnt_clr; 
+    logic                          count_en, cnt_clr, k_increase, in_count_en, k_clear;
     logic                          acc_state_flip;
     logic [$clog2(K_TILE)-1:0]     k_tile_count;
     logic                          w_ready_flag, reg_clr;
+    logic                          in_cnt_clr_o;            
 
     always_ff @(posedge clk) begin
         if(rst || cu_hold_i) begin
@@ -92,7 +91,7 @@ module dp_fsm (
     end
 
     always_ff @(posedge clk) begin
-        if(rst || in_cnt_clr) begin
+        if(rst || in_cnt_clr_o) begin
             in_count <= '0;
         end
         else if(in_count_en) begin
@@ -101,20 +100,25 @@ module dp_fsm (
     end 
     
     always_ff @(posedge clk) begin
-        if(rst || out_cnt_clr) out_count <= '0;
-        else if(sa_valid_i)      out_count <= out_count + 1; 
+        if(rst || out_cnt_clr || !sa_valid_i)       out_count <= '0;
+        else if(sa_valid_i && (curr_state == COMP)) out_count <= out_count + 1; 
     end 
 
     always_comb begin
 
+        dp_busy_o = (curr_state != IDLE);
+        
+        in_cnt_clr_o = 0;
+        out_cnt_clr  = 0;
+
         // setting all signals to 0
         no_skew = 0; 
 
-        sp_rd_o = 0;
+        w_sp_rd_o = 0;
+        a_sp_rd_o = 0;
 
         acc_op_o = 0; 
-        acc_hold_o = 0; 
-        acc_state_o = 0;
+        
 
         acc_state_flip = 0;
 
@@ -122,7 +126,6 @@ module dp_fsm (
         sa_comp_e_o = 0;
 
         results_ready_o = 0;
-        comp_count_en = 0;
 
         count_en      = 0;
         cnt_clr       = 0;
@@ -151,7 +154,7 @@ module dp_fsm (
 
                         no_skew     = 1;
 
-                        sp_rd_o     = 1; 
+                        w_sp_rd_o   = 1; 
                         
                         sa_wr_o     = 1;
 
@@ -169,33 +172,29 @@ module dp_fsm (
             COMP : begin
                 sa_comp_e_o     = 1;
 
-                comp_count_en = 1;
-
                 if (in_count < BATCH_SIZE) begin
-                    sp_rd_o       = 1'b1;
+                    a_sp_rd_o   = 1'b1;
                     in_count_en = 1'b1;
-                end
-                
+                end          
+
 
                 if(sa_valid_i && (out_count == (BATCH_SIZE-1))) begin
-
+                    acc_state_flip = 1;
+                    sa_comp_e_o    = 0;
                     if(k_tile_count == (K_TILE-1)) begin
-                        acc_state_flip = 1;
+                        
                         results_ready_o = 1;
                         k_clear = 1;
+                        next_state = IDLE;
                     end 
                     else begin
                         k_increase = 1;
                     end
-
-                    in_cnt_clr  = 1;
-                    out_cnt_clr = 1;
-
-                    next_state = IDLE; // go to IDLE so that we can load the weights for the next batch
-                end 
-                else if(stop_comp_i) begin
                     next_state = IDLE;
-                end
+                    in_cnt_clr_o  = 1;
+                    out_cnt_clr   = 1;
+                end 
+                else if(stop_comp_i) next_state = IDLE;
                 else next_state = COMP;
             end
 
