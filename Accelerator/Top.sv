@@ -68,6 +68,7 @@ module top (
 
     // Control to Accumulator
     logic acc_op, acc_hold, acc_state, acc_rd;
+    logic [$clog2(ACC_SIZE)-1:0] acc_rd_add;
     logic [$clog2(ACC_SIZE)-1:0] acc_wr_addr;
 
     // DP FSM to Systolic Array
@@ -96,10 +97,20 @@ module top (
     logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                         sa_i_wire;
     logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                         skewed_data;
 
+    // ===========================
     // Valid Signal Delay Pipeline
+    // ===========================
+
+    
+    // delayed_sa_acc_handshake
+
+
     localparam VALID_DELAY = M - 1;
     logic [VALID_DELAY-1:0] handshake_shift_reg;
     logic                   delayed_sa_acc_handshake;
+
+    logic [PARTITIONS-1:0][CONC_ADD-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]   activations;
+    logic [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                   weights;
 
     always_ff @(posedge clk) begin
         if (rst) begin
@@ -115,13 +126,90 @@ module top (
 
     assign delayed_sa_acc_handshake = handshake_shift_reg[VALID_DELAY-1];
 
-    // Control / Top-Level Modules
+    // delayed_acc_state
+    /*
+    logic [VALID_DELAY-1:0] state_shift_reg;
+    logic                   delayed_acc_state;
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            state_shift_reg <= '0;
+        end else begin
+            state_shift_reg[0] <= acc_state;
+
+            for (int i = 1; i < VALID_DELAY; i++) begin
+                state_shift_reg[i] <= state_shift_reg[i-1];
+            end
+        end
+    end
+
+    assign delayed_acc_state = state_shift_reg[VALID_DELAY-1];
+    */
+
+    // delayed_acc_wr_addr
+
+
+    logic [VALID_DELAY-1:0][$clog2(ACC_SIZE)-1:0]  wr_shift_reg;
+    logic [$clog2(ACC_SIZE)-1:0]                   delayed_acc_wr_addr;
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            wr_shift_reg <= '0;
+        end else begin
+            wr_shift_reg[0] <= acc_wr_addr;
+
+            for (int i = 1; i < VALID_DELAY; i++) begin
+                wr_shift_reg[i] <= wr_shift_reg[i-1];
+            end
+        end
+    end
+
+    assign delayed_acc_wr_addr = wr_shift_reg[VALID_DELAY-1];
+
+    // delayed_acc_op
+    logic [VALID_DELAY-1:0] op_shift_reg;
+    logic                   delayed_acc_op;
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            op_shift_reg <= '0;
+        end else begin
+            op_shift_reg[0] <= acc_op;
+            for (int i = 1; i < VALID_DELAY; i++) begin
+                op_shift_reg[i] <= op_shift_reg[i-1];
+            end
+        end
+    end
+
+    assign delayed_acc_op = op_shift_reg[VALID_DELAY-1];
+
+    // delayed_results_ready
+    localparam RESULTS_DELAY = VALID_DELAY + 3;
+    logic [RESULTS_DELAY-1:0] results_ready_shift_reg;
+    logic                     delayed_results_ready;
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            results_ready_shift_reg <= '0;
+        end else begin
+            results_ready_shift_reg[0] <= results_ready;
+            for (int i = 1; i < RESULTS_DELAY; i++) begin
+                results_ready_shift_reg[i] <= results_ready_shift_reg[i-1];
+            end
+        end
+    end
+
+    assign delayed_results_ready = results_ready_shift_reg[RESULTS_DELAY-1];
+
+    //============================
+    // Module instantiation
+    //============================
     mem_fsm mem_fsm_inst (
         .clk(clk), 
         .rst(rst),
         .start_w_i(start_w), 
         .start_a_i(start_a),
-        .results_ready_i(results_ready), 
+        .results_ready_i(delayed_results_ready), 
         .dma_load_finish_i(dma_load_finish),
         .dp_busy_i(dp_busy_wire),
         .rocc_src_addr_i(dma_src_addr[31:0]), 
@@ -132,6 +220,7 @@ module top (
         .start_w_load_o(start_w_load), 
         .start_comp_o(start_comp),
         .acc_rd(acc_rd), 
+        .a_sp_wr_clr_o(a_sp_wr_clr),
         .weight_fetch_o(weight_fetch),
         .dma_go_pulse(dma_go_pulse), 
         .dma_mode_o(dma_mode), 
@@ -156,11 +245,10 @@ module top (
         .w_sp_rd_o(w_sp_rd),
         .acc_op_o(acc_op), 
         .acc_hold_o(acc_hold), 
-        .acc_state_o(acc_state),
+        .acc_state_o(), // acc_state was there beforehand
         .sa_wr_o(sa_wr_wire), 
         .sa_comp_e_o(sa_comp_wire),
         .out_count(acc_wr_addr),
-        .in_cnt_clr_o(a_SP_wr_clr), 
         .dp_busy_o(dp_busy_wire)
     );
 
@@ -181,14 +269,13 @@ module top (
     accumulator accumulator_inst (
         .clk(clk), 
         .rst(rst), 
-        .op(acc_op), 
+        .op(delayed_acc_op), 
         .hold(acc_hold), 
-        .state(acc_state),
         .valid_i(delayed_sa_acc_handshake), 
         .dma_ready_i(dma_ready_wire),
         .acc_rd(acc_rd),
-        .acc_wr_addr(acc_wr_addr), 
-        .acc_rd_addr(acc_wr_addr), 
+        .acc_wr_addr(delayed_acc_wr_addr), 
+        .acc_rd_addr_i(delayed_acc_wr_addr), 
         .acc_i(acc_results_i),
         .valid_o(acc_valid),       
         .acc_ready(),              
@@ -196,26 +283,26 @@ module top (
     );
 
     DMA DMA_inst (
-    .clk(clk), .ARESETn(~rst),
-    .src_addr(seq_src_addr[31:0]),
-    .dst_addr(seq_dst_addr),
-    .length(seq_length),
-    .go_pulse(dma_go_pulse), 
-    .dma_mode_i(dma_mode),
-    .acc_data_i(dma_acc_data), 
-    .acc_valid_i(acc_valid_wire),
-    .acc_ready_o(dma_acc_ready_out),
-    .sp_ready_i(1'b1),
-    .weight_fetch_i(weight_fetch),
-    .sp_data_o(raw_dma_data), 
-    .w_sp_valid_o(w_raw_dma_valid),
-    .a_sp_valid_o(a_raw_dma_valid),
-    .busy(),
-    .dma_load_finish_o(dma_load_finish),
-    .AxiReadIntf(AxiReadIntf), 
-    .AxiWriteIntf(AxiWriteIntf)
-);
-
+        .clk(clk), 
+        .ARESETn(~rst),
+        .src_addr(seq_src_addr[31:0]),
+        .dst_addr(seq_dst_addr),
+        .length(seq_length),
+        .go_pulse(dma_go_pulse), 
+        .dma_mode_i(dma_mode),
+        .acc_data_i(dma_acc_data), 
+        .acc_valid_i(acc_valid_wire),
+        .acc_ready_o(dma_acc_ready_out),
+        .sp_ready_i(1'b1),
+        .weight_fetch_i(weight_fetch),
+        .sp_data_o(raw_dma_data), 
+        .w_sp_valid_o(w_raw_dma_valid),
+        .a_sp_valid_o(a_raw_dma_valid),
+        .busy(),
+        .dma_load_finish_o(dma_load_finish),
+        .AxiReadIntf(AxiReadIntf), 
+        .AxiWriteIntf(AxiWriteIntf)
+    );
     
     activations_sp activations_sp_inst (
         .clk(clk), 
@@ -250,7 +337,7 @@ module top (
         .clk(clk),
         .rst(rst),
         .sp_wr_i(a_sp_wr),
-        .clear_i(a_SP_wr_clr),
+        .clear_i(a_sp_wr_clr),
         .sp_wr_add_o(sp_wr_add),
         .sp_wr_en_o(sp_wr_en_onehot)
     );
@@ -262,6 +349,23 @@ module top (
         .clear_i(start_w_load), 
         .sp_wr_add_o(w_sp_wr_add),
         .sp_wr_en_o(w_sp_wr_en)
+    );
+
+    Read_skew Read_skew_inst (
+        .clk(clk), 
+        .rst(rst),
+        .sp_rd_i(sp_rd),     
+        .sp_rd_o(sp_rd_skewed), 
+        .sp_rd_add_o(sp_rd_add)
+    );
+
+    Weight_sp_rd Weight_sp_rd_inst (
+        .clk(clk), 
+        .rst(rst),
+        .clear_i(start_w_load), 
+        .sp_rd_i(w_sp_rd),     
+        .sp_rd_o(w_sp_rd_o), 
+        .sp_rd_add_o(w_sp_rd_add)
     );
 
     RoCCTran RoCCTran_inst (
@@ -307,53 +411,22 @@ module top (
         .deskew_mod_o(acc_results_i)
     );
 
-    Read_skew Read_skew_inst (
-        .clk(clk), 
-        .rst(rst),
-        .sp_rd_i(sp_rd),     
-        .sp_rd_o(sp_rd_skewed), 
-        .sp_rd_add_o(sp_rd_add)
-    );
-
-    Weight_sp_rd Weight_sp_rd_inst (
-        .clk(clk), 
-        .rst(rst),
-        .clear_i(start_w_load), 
-        .sp_rd_i(w_sp_rd),     
-        .sp_rd_o(w_sp_rd_o), 
-        .sp_rd_add_o(w_sp_rd_add)
-    );
-
-
     // Output Datapath 
     Quantizer Quantizer_inst (
         .quantize_i(acc_data),
         .quantize_o(serial_i)
     );
 
-    generate
-        if (M * N * DATA_WIDTH == 64) begin
-            // SCENARIO 1: M * N * DATA_WIDTH == 64
-            // Bypass the Serializer module
-            assign dma_acc_data   = serial_i;
-            assign acc_valid_wire = acc_valid;
-            assign dma_ready_wire = dma_acc_ready_out;
-            
-        end else begin
-            // SCENARIO 2: M * N * DATA_WIDTH > 64
-            serializer serializer_inst (
-                .clk(clk), 
-                .rst(rst),
-                .valid_i(acc_valid),  
-                .data_i(serial_i),
-                .ready_o(dma_ready_wire),  
-                .dma_ready_i(dma_acc_ready_out), 
-                .valid_o(acc_valid_wire),     
-                .data_o(dma_acc_data)
-            );
-        end
-    endgenerate
-
+    serializer serializer_inst (
+        .clk(clk), 
+        .rst(rst),
+        .valid_i(acc_valid),  
+        .data_i(serial_i),
+        .ready_o(dma_ready_wire),  
+        .dma_ready_i(dma_acc_ready_out), 
+        .valid_o(acc_valid_wire),     
+        .data_o(dma_acc_data)
+    );
     
     concat weight_concat_inst (
         .concat_i(raw_dma_data),
