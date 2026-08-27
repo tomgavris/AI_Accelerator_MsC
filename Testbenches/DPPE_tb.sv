@@ -1,29 +1,26 @@
-
-    localparam DATA_WIDTH = 8;
-    localparam OP = 2;
-    localparam N = 2; // Number of DP2s NxN
-
+import pe_pkg::*;
 module DPPE_tb ();
 
 
 logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_i; 
 logic signed [N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]  mid_w_i; 
-logic signed [N-1:0][2*DATA_WIDTH-1:0]               mid_p_i; 
+logic signed [N-1:0][P_DATA_WIDTH-1:0]               mid_p_i; 
 logic                                                clk, rst, mid_wr_e, comp_e; 
 logic signed [N-1:0][OP-1:0][DATA_WIDTH-1:0]         mid_a_o; 
-logic signed [N-1:0][2*DATA_WIDTH-1:0]               mid_parsum_o;
+logic signed [N-1:0][P_DATA_WIDTH-1:0]               mid_parsum_o;
 
 generate
     DPPE DPPE_I (
-        .mid_a_i(mid_a_i),
-        .mid_w_i(mid_w_i),
-        .mid_p_i(mid_p_i),
+        .dppe_a_i(mid_a_i),
+        .dppe_w_i(mid_w_i),
+        .dppe_p_i(mid_p_i),
         .clk(clk),
         .rst(rst),
-        .mid_wr_e(mid_wr_e),
-        .comp_e(comp_e),
-        .mid_a_o(mid_a_o),
-        .mid_parsum_o(mid_parsum_o)
+        .dppe_wr_e(mid_wr_e),
+        .comp_e_i(comp_e),
+        .dppe_a_o(mid_a_o),
+        .dppe_parsum_o(mid_parsum_o),
+        .dppe_w_o()
     );
 endgenerate
 
@@ -33,50 +30,88 @@ initial begin
 end
 
 initial begin
-    for (int i = 0; i < N ; i++ ) begin
-        for (int j = 0; j < OP; j++) begin
-            mid_a_i[i][j] =  i;
-        end
-    end
-
-    for (int i = 0; i < N ; i++ ) begin
-        for (int j = 0; j < N; j++) begin
-            for (int k = 0; k < OP; k++) begin
-                mid_w_i[i][j][k] = i + j + k;
-            end
-        end
-    end
-    for (int i = 0; i < N; i++) begin
-        mid_p_i[i] = 16'd0;
-    end
+    
+    $display("This is the start");
     rst = 1;
     mid_wr_e = 0;
     comp_e = 0;
 
+    // loading weights
     @(posedge clk);
+    $display("================ Loading weights/activations ==================");
+    for (int i = 0; i < N ; i++ ) begin
+        for (int j = 0; j < N; j++) begin
+            for (int k = 0; k < OP; k++) begin
+                mid_w_i[i][j][k] = 4*i + 2*j + k;
+            end
+        end
+    end
+
+
+
+    for (int i = 0; i < N ; i++ ) begin
+        for (int j = 0; j < OP; j++) begin
+            mid_a_i[i][j] = i + 1;
+        end
+    end
+
+    for (int i = 0; i < N; i++) begin
+        mid_p_i[i] = 16'd0;
+    end
     rst = 0;
     mid_wr_e = 1;
     comp_e = 0;
 
-    @(posedge clk);
+    repeat(N) @(posedge clk);
+
+    for (int i = 0; i < N ; i++ ) begin
+        for (int j = 0; j < N; j++) begin
+            for (int k = 0; k < OP; k++) begin
+                $display("DPPE_I.dppe_w_i[%0d][%0d][%0d] = %0d", i, j, k, DPPE_I.dppe_w_i[i][j][k]);
+            end
+        end
+    end
+
     rst = 0;
     mid_wr_e = 0;
     comp_e = 1;
     
+    
     @(posedge clk);
+    #1
+
     rst = 0;
     mid_wr_e = 0;
     comp_e = 1;
+    $display("psum0 = %0d and psum1 = %0d", 
+        DPPE_I.dppe_parsum_o[0],
+        DPPE_I.dppe_parsum_o[1]
+    );
+
+    if((mid_parsum_o[0] != 19) || (mid_parsum_o[1] != 31)) $display("ERROR IN FIRST TRY!");
+    else $display("SUCCES FIRST TRY!");
+
+    
+
+    @(posedge clk);
+    #1
+    
     for (int i = 0; i < N ; i++ ) begin
         for (int j = 0; j < OP; j++) begin
-            mid_a_i[i][j] =  2*i + j;
+            mid_a_i[i][j] = 1;
         end
     end
     for (int i = 0; i < N; i++) begin
         mid_p_i[i] = 16'd1;
     end
 
-    @(posedge clk);
+    $display("psum0 = %0d and psum1 = %0d", 
+        mid_parsum_o[0],
+        mid_parsum_o[1]
+    );
+
+    if((mid_parsum_o[0] != 11) || (mid_parsum_o[1] != 19)) $display("ERROR IN SECOND TRY!");
+    else $display("SUCCESS SECOND TRY!");
     rst = 1;
     mid_wr_e = 0;
     comp_e = 0;
