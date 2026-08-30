@@ -67,8 +67,8 @@ module DPPE_SA (
     endgenerate
 
     generate
-        for (i = 0; i < M; i++) begin
-            for (j = 0; j < M ; j++) begin
+        for (i = 0; i < M; i++) begin : row
+            for (j = 0; j < M ; j++) begin : col
                 DPPE #(
                     .FIRST_ROW(i == 0),
                     .IS_LAST_X(j == M-1),
