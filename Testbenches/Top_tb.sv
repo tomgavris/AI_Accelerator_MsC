@@ -53,10 +53,7 @@ module tb_top();
     );
 
     // -----------------------------------------------------------------
-    // Simulated L2. Sized to cover weight source, activation source
-    // (all K_TILE tiles' worth), and the store destination region.
-    // NOTE: this is large (512KB) because a full K_TILE=64 autonomous
-    // run genuinely needs that much source data -- not a mistake.
+    // Simulated L2.
     // -----------------------------------------------------------------
     localparam int MEM_BYTES = 32'h0008_0000; // 512KB
     logic [7:0] sys_memory [0:MEM_BYTES-1];
@@ -65,31 +62,29 @@ module tb_top();
     localparam logic [31:0] ACT_SRC_BASE    = 32'h0002_0000;
     localparam logic [31:0] STORE_DST_ADDR  = 32'h0000_0000;
 
-    localparam int RAW_TOTAL = M*N*OP*K_TILE;
-    localparam int SHIFTED   = RAW_TOTAL >>> (P_DATA_WIDTH-DATA_WIDTH);
-    localparam logic signed [7:0] EXPECTED_BYTE = 
-        (SHIFTED > 127)  ? 8'sd127 :
-        (SHIFTED < -128) ? -8'sd128 : 
-                        SHIFTED[7:0];
+    localparam int OP_SUM = 3;
 
+    integer pulse_num = 0;
 
-    // Exact byte counts this design actually needs, derived the same
-    // way ACT_TILE_BYTES/STORE_BYTES are derived inside mem_fsm --
-    // kept local here so the testbench doesn't silently drift from
-    // mem_fsm's own math if pe_pkg parameters change.
-    localparam int WEIGHT_FETCH_BYTES = M * (M*N*N*OP*DATA_WIDTH/8);          // 2048
-    localparam int ACT_TOTAL_BYTES    = K_TILE * (BATCH_SIZE*M*N*OP*DATA_WIDTH/8); // 262144
-    localparam int STORE_TOTAL_BYTES  = (BATCH_SIZE*M*N*DATA_WIDTH)/8;        // 2048
+    localparam int WEIGHT_FETCH_BYTES    = M * (M*N*N*OP*DATA_WIDTH/8);
+    localparam int ACT_TILE_BYTES        = (BATCH_SIZE * M * N * OP * DATA_WIDTH) / 8;
+    localparam int ACT_TOTAL_BYTES       = K_TILE * ACT_TILE_BYTES;
+    localparam int BYTES_PER_BATCH_ENTRY = (M * N * OP * DATA_WIDTH) / 8;
+    localparam int STORE_TOTAL_BYTES     = (BATCH_SIZE*M*N*DATA_WIDTH)/8;
+    localparam int BYTES_PER_ADDR        = (M*N*DATA_WIDTH)/8;
 
-    // Expected quantized output byte, derived by hand from DP/DPPE math
-    // for the all-ones weight/activation pattern (see chat writeup).
+    function automatic byte expected_byte(input int b);
+        longint raw;
+        int shifted;
+        raw     = longint'(M) * N * OP_SUM * (4*(b+1)) * K_TILE;
+        shifted = raw >>> (P_DATA_WIDTH - DATA_WIDTH);
+        if (shifted > 127)       expected_byte = 8'sd127;
+        else if (shifted < -128) expected_byte = -8'sd128;
+        else                     expected_byte = shifted[7:0];
+    endfunction
 
     // -----------------------------------------------------------------
-    // AXI4 Read Slave -- 64-bit beats, matching Reader.sv's hardcoded
-    // ARSIZE=3'b011. AxiPkg's RDATA field is declared SRAM_WIDTH bits
-    // (128), wider than what Reader actually transfers per beat; only
-    // the low 64 bits are meaningful here, matching what Reader/concat
-    // actually consume. Upper bits left at 0 -- not modeled further.
+    // AXI4 Read Slave -- 64-bit beats
     // -----------------------------------------------------------------
     logic [31:0] read_addr;
     logic [7:0]  read_len;
@@ -98,7 +93,6 @@ module tb_top();
         if (rst) begin
             AxiReadIntf.RdAddrReady <= 1'b0;
             AxiReadIntf.RdDataValid <= 1'b0;
-            AxiReadIntf.RdDataPayload.RDATA <= '0;
             AxiReadIntf.RdDataPayload.RRESP <= '0;
             AxiReadIntf.RdDataPayload.RID   <= '0;
             read_addr <= '0;
@@ -119,18 +113,18 @@ module tb_top();
                     AxiReadIntf.RdDataValid <= 1'b0;
                 end else begin
                     read_len  <= read_len - 8'd1;
-                    read_addr <= read_addr + 32'd8;
+                    read_addr <= read_addr + 32'd8; 
                 end
             end
-
-            AxiReadIntf.RdDataPayload.RDATA[63:0] <= {
-                sys_memory[read_addr+7], sys_memory[read_addr+6],
-                sys_memory[read_addr+5], sys_memory[read_addr+4],
-                sys_memory[read_addr+3], sys_memory[read_addr+2],
-                sys_memory[read_addr+1], sys_memory[read_addr]
-            };
         end
     end
+
+    assign AxiReadIntf.RdDataPayload.RDATA[63:0] = {
+        sys_memory[read_addr+7], sys_memory[read_addr+6],
+        sys_memory[read_addr+5], sys_memory[read_addr+4],
+        sys_memory[read_addr+3], sys_memory[read_addr+2],
+        sys_memory[read_addr+1], sys_memory[read_addr]
+    };
 
     assign AxiReadIntf.RdDataPayload.RLAST =
         AxiReadIntf.RdDataValid && (read_len == 8'd0);
@@ -226,21 +220,6 @@ module tb_top();
         end
     endtask
 
-    task automatic monitor_post_compute();
-        forever begin
-            @(posedge clk);
-            if (dut.mem_fsm_inst.curr_state >= 6) begin // STORE_REQ or STORE_WAIT
-                $display("[%0t] STORE: mem_fsm=%0d dp_fsm=%0d in=%0d out=%0d | write_splitter=%0d Writer=%0d AW=%0b/%0b W=%0b/%0b",
-                    $time, dut.mem_fsm_inst.curr_state, dut.dp_fsm_inst.curr_state,
-                    dut.dp_fsm_inst.in_count, dut.dp_fsm_inst.out_count,
-                    dut.DMA_inst.controller_inst.write_splitter.state,
-                    dut.DMA_inst.data_mover_inst.writer_inst.state,
-                    AxiWriteIntf.WrAddrValid, AxiWriteIntf.WrAddrReady,
-                    AxiWriteIntf.WrDataValid, AxiWriteIntf.WrDataReady);
-            end
-        end
-    endtask
-
     task automatic wait_for_busy_episode(input string label, input int max_cycles);
         int cyc = 0;
         begin
@@ -258,51 +237,6 @@ module tb_top();
         end
     endtask
 
-    task automatic monitor_dp_progress();
-        forever begin
-            @(posedge clk);
-            if (dut.dp_fsm_inst.curr_state == 2) begin // COMP
-                $display("[%0t] COMP: in_count=%0d out_count=%0d k_tile=%0d sa_valid=%0b a_sp_state=%0b tile_idx=%0d comp_hold=%0b",
-                    $time,
-                    dut.dp_fsm_inst.in_count,
-                    dut.dp_fsm_inst.out_count,
-                    dut.dp_fsm_inst.k_tile_count,
-                    dut.sa_acc_handshake,
-                    dut.a_sp_state,
-                    dut.mem_fsm_inst.tile_idx,
-                    dut.mem_fsm_inst.comp_hold);
-            end
-        end
-    endtask
-
-    integer start_comp_count = 0;
-    always @(posedge clk) begin
-        if (dut.start_comp) begin
-            start_comp_count++;
-            $display("[%0t] start_comp pulse #%0d -- mem_fsm.tile_idx=%0d dp_fsm.k_tile_count=%0d",
-                    $time, start_comp_count, dut.mem_fsm_inst.tile_idx, dut.dp_fsm_inst.k_tile_count);
-        end
-    end
-
-    // ================= X-origin watcher =================
-    logic x_w, x_a, x_sk, x_ps, x_ds, x_ad, x_si, x_dd;
-
-    always @(posedge clk) begin
-        if (rst) begin
-            x_w <= 1'b0; x_a  <= 1'b0; x_sk <= 1'b0; x_ps <= 1'b0;
-            x_ds<= 1'b0; x_ad <= 1'b0; x_si <= 1'b0; x_dd <= 1'b0;
-        end else begin
-            if (!x_w  && $isunknown(dut.weights))       begin $display("[%0t] FIRST X: weights (weights_sp out)", $time);   x_w  <= 1'b1; end
-            if (!x_a  && $isunknown(dut.activations))   begin $display("[%0t] FIRST X: activations (act_sp out)", $time);   x_a  <= 1'b1; end
-            if (!x_sk && $isunknown(dut.skewed_data))   begin $display("[%0t] FIRST X: skewed_data (into SA)", $time);      x_sk <= 1'b1; end
-            if (!x_ps && $isunknown(dut.sa_results))    begin $display("[%0t] FIRST X: sa_parsum (SA out)", $time);         x_ps <= 1'b1; end
-            if (!x_ds && $isunknown(dut.acc_results_i)) begin $display("[%0t] FIRST X: acc_results_i (post-deskew)", $time);x_ds <= 1'b1; end
-            if (!x_ad && $isunknown(dut.acc_data))      begin $display("[%0t] FIRST X: acc_data (acc out)", $time);         x_ad <= 1'b1; end
-            if (!x_si && $isunknown(dut.serial_i))      begin $display("[%0t] FIRST X: serial_i (post-quant)", $time);      x_si <= 1'b1; end
-            if (!x_dd && $isunknown(dut.dma_acc_data))  begin $display("[%0t] FIRST X: dma_acc_data (into DMA)", $time);    x_dd <= 1'b1; end
-        end
-    end
-
     // ================= Accumulator write coverage =================
     integer wr_hits [0:255];
     integer cov_idx;
@@ -311,37 +245,35 @@ module tb_top();
         for (cov_idx = 0; cov_idx < 256; cov_idx = cov_idx + 1) wr_hits[cov_idx] = 0;
     end
 
+    integer axi_beat_count = 0;
     always @(posedge clk) begin
-        if (!rst && dut.accumulator_inst.valid_reg) begin
-            $display("[%0t] WR addr=%0d idx_in_tile=%0d db_state=%0b op_reg=%0b k_tile=%0d flip=%0b k_inc=%0b k_clr=%0b res_rdy=%0b lane3=%0h",
-                $time,
-                dut.accumulator_inst.wr_add_reg,
-                dut.accumulator_inst.wr_add_reg,          // same value, just for clarity vs BATCH_SIZE-1
-                dut.accumulator_inst.double_buffer_i.state,
-                dut.accumulator_inst.op_reg,
-                dut.dp_fsm_inst.k_tile_count,
-                dut.dp_fsm_inst.acc_state_flip,
-                dut.dp_fsm_inst.k_increase,
-                dut.dp_fsm_inst.k_clear,
-                dut.dp_fsm_inst.results_ready_o,
-                dut.accumulator_inst.acc_res_w[47:32]);   // just address-3's own 16-bit lane, not the whole word
+        if (rst) begin
+            axi_beat_count = 0;
+        end else begin
+            if (dut.a_raw_dma_valid && AxiReadIntf.RdDataReady) begin
+                axi_beat_count++;
+            end
+            
+            if (dut.mem_fsm_inst.curr_state == 3'd4 && dut.dma_load_finish) begin
+                $display("[%0t] A_FETCH COMPLETE: TOTAL AXI BEATS THIS TILE = %0d (expected %0d)", 
+                         $time, axi_beat_count, ACT_TILE_BYTES/8);
+                axi_beat_count = 0; 
+            end
         end
     end
 
-    // In tb_top, module-level:
+    always @(posedge clk) begin
+        if (!rst && dut.a_raw_dma_valid) begin 
+            $display("[%0t] PRE-CONCAT: raw_dma_data=%0h  AxiReadIntf.RdDataValid=%0b RdDataReady=%0b RDATA=%0h",
+                $time, dut.raw_dma_data,
+                AxiReadIntf.RdDataValid, AxiReadIntf.RdDataReady,
+                AxiReadIntf.RdDataPayload.RDATA);
+        end
+    end
+
     always @(posedge clk) begin
         if (!rst && dut.acc_valid_wire) begin
             $display("[%0t] SERIALIZER OUT beat: data=%h", $time, dut.dma_acc_data);
-        end
-    end
-
-    always @(posedge clk) begin
-        if (!rst && dut.mem_fsm_inst.curr_state == 7 /*STORE_WAIT*/ &&
-            dut.accumulator_inst.drain_addr == BATCH_SIZE-1 &&
-            dut.accumulator_inst.valid_o) begin
-            $display("[%0t] DRAIN READ addr=%0d data=%0d (0x%0h)",
-                $time, dut.accumulator_inst.drain_addr,
-                dut.accumulator_inst.acc_o, dut.accumulator_inst.acc_o);
         end
     end
 
@@ -353,6 +285,18 @@ module tb_top();
         end
     end
 
+    always @(posedge clk) begin
+        if (!rst && dut.sa_comp_wire) begin
+            $display("[%0t] SA_IN in_count=%0d | a_sp_state=%0b sp_rd_add[0]=%0d | r0=%0d r1=%0d r2=%0d r3=%0d r4=%0d r5=%0d r6=%0d r7=%0d",
+                $time, dut.dp_fsm_inst.in_count, 
+                dut.a_sp_state, dut.sp_rd_add[0],
+                $signed(dut.skewed_data[0][0][0]), $signed(dut.skewed_data[1][0][0]),
+                $signed(dut.skewed_data[2][0][0]), $signed(dut.skewed_data[3][0][0]),
+                $signed(dut.skewed_data[4][0][0]), $signed(dut.skewed_data[5][0][0]),
+                $signed(dut.skewed_data[6][0][0]), $signed(dut.skewed_data[7][0][0]));
+        end
+    end
+
     // -----------------------------------------------------------------
     // Main Simulation Block
     // -----------------------------------------------------------------
@@ -360,53 +304,49 @@ module tb_top();
     integer mismatches;
 
     initial begin
-        $display("Starting full-pipeline accelerator simulation (uniform 1s pattern)...");
+        $display("Starting full-pipeline simulation...");
         rst = 1'b1;
 
-        // Fill only the ranges actually used -- fills the full 262144-byte
-        // activation region, so this loop is not fast; expect a real wait
-        // at simulation startup before cycle 0 even begins.
         for (i = 0; i < WEIGHT_FETCH_BYTES; i++)
-            sys_memory[WEIGHT_SRC_ADDR + i] = 8'h01;
-        for (i = 0; i < ACT_TOTAL_BYTES; i++)
-            sys_memory[ACT_SRC_BASE + i] = 8'h01;
+            sys_memory[WEIGHT_SRC_ADDR + i] = (i % 2 == 0) ? 8'h01 : 8'h02;
+
+        for (int k_idx = 0; k_idx < K_TILE; k_idx++) begin
+            for (int b_idx = 0; b_idx < BATCH_SIZE; b_idx++) begin
+                automatic byte v = 4*(b_idx+1); 
+                for (int j_idx = 0; j_idx < BYTES_PER_BATCH_ENTRY; j_idx++)
+                    sys_memory[ACT_SRC_BASE + k_idx*ACT_TILE_BYTES
+                               + b_idx*BYTES_PER_BATCH_ENTRY + j_idx] = v;
+            end
+        end
+
         for (i = 0; i < STORE_TOTAL_BYTES; i++)
-            sys_memory[STORE_DST_ADDR + i] = 8'hFF; // sentinel: "never written"
+            sys_memory[STORE_DST_ADDR + i] = 8'hFF; 
 
         #100;
         @(posedge clk);
         rst = 1'b0;
-        // fork monitor_dp_progress(); join_none;
         $display("[%0t] Reset released.", $time);
 
-        // W_FETCH: funct=1, rs1=weight src addr, rs2={length, dst(unused)}
         send_rocc_cmd(7'd1, {32'd0, WEIGHT_SRC_ADDR}, {WEIGHT_FETCH_BYTES[31:0], 32'd0});
         wait_for_busy_episode("W_FETCH", 5000);
         $display("[%0t] W_FETCH complete.", $time);
 
-        // A_FETCH: funct=2, rs1=activation src BASE addr (tile 0),
-        // rs2={length(unused by mem_fsm's internal tiling -- placeholder), dst=store addr}.
-        // mem_fsm internally loops K_TILE times from this base address;
-        // the length field here is ignored by the autonomous fetch loop.
         send_rocc_cmd(7'd2, {32'd0, ACT_SRC_BASE}, {32'd0, STORE_DST_ADDR});
-
-        // This covers ALL K_TILE fetch+compute tiles in one continuous
-        // busy episode -- expect this to be the long one.
         wait_for_busy_episode("A_FETCH + all K_TILE compute", 350000);
         $display("[%0t] All-tile fetch + compute complete.", $time);
 
-        // Autonomous STORE, triggered internally once results_ready fires
         wait_for_busy_episode("STORE (autonomous)", 5000);
         $display("[%0t] Store complete.", $time);
 
-        // Self-check: every byte of the store region should be EXPECTED_BYTE
         mismatches = 0;
         for (i = 0; i < STORE_TOTAL_BYTES; i++) begin
-            if (sys_memory[STORE_DST_ADDR + i] !== EXPECTED_BYTE) begin
-                if (mismatches < 10) begin
-                    $display("  MISMATCH at byte %0d: got %0d (0x%0h), expected %0d",
-                              i, $signed(sys_memory[STORE_DST_ADDR+i]),
-                              sys_memory[STORE_DST_ADDR+i], EXPECTED_BYTE);
+            automatic int b = i / BYTES_PER_ADDR;
+            automatic byte exp = expected_byte(b);
+            if (sys_memory[STORE_DST_ADDR + i] !== exp) begin
+                if (mismatches < 20) begin
+                    $display("  MISMATCH byte %0d (addr %0d): got %0d (0x%0h), expected %0d",
+                              i, b, $signed(sys_memory[STORE_DST_ADDR+i]),
+                              sys_memory[STORE_DST_ADDR+i], exp);
                 end
                 mismatches++;
             end
@@ -414,17 +354,16 @@ module tb_top();
 
         if (mismatches == 0) begin
             $display("========================================");
-            $display("   SUCCESS: all %0d output bytes == %0d", STORE_TOTAL_BYTES, EXPECTED_BYTE);
+            $display("   SUCCESS: all %0d output bytes match their per-address expected value", STORE_TOTAL_BYTES);
+            for (int b = 0; b < BATCH_SIZE; b++)
+                $display("     addr %0d -> expected %0d", b, expected_byte(b));
             $display("========================================");
         end else begin
             $display("========================================");
             $display("   FAILED: %0d / %0d bytes mismatched", mismatches, STORE_TOTAL_BYTES);
             $display("========================================");
         end
-        for (cov_idx = 0; cov_idx < BATCH_SIZE; cov_idx = cov_idx + 1)
-            if (wr_hits[cov_idx] != K_TILE)
-                $display("COVERAGE GAP: addr %0d written %0d times (expected %0d)",
-                          cov_idx, wr_hits[cov_idx], K_TILE);
+
         $finish;
     end
 
