@@ -17,7 +17,7 @@ At its current stage, a Concatenation module is also used before the SP. The rea
 The schematic of the current accelerator architecture can be seen in the picture below, the dotted lines seperating the accelerator from its environment.
 
 <p align="center">
-  <img src="Assets/SA.png" alt="Project Screenshot" width="900">
+  <img src="Assets/Accelerator.png" alt="Project Screenshot" width="900">
 </p>
 
 
@@ -48,3 +48,8 @@ Because of its unique position inside the system, the DMA has been modified in o
 
 **Concatenation module:** Despite not being a memory element itself, this module belongs in this file since its only use is concatenating incoming activation data and feeding them to the SP. 
 
+**Supervisor:** Spyridon Nikolaidis, Professor at the Aristotle University of Thessaloniki
+
+**Guidance:** Alberto Garcia-Ortiz, Professor and Head of Chair for Microelectronics at the University of Bremen
+
+**Assistance:** Sebastian Fischer, PhD Candidate of Bremen Universität 
