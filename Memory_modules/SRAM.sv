@@ -1,8 +1,8 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
 module single_port_ram #(
-    parameter WIDTH = DATA_WIDTH,
-    parameter RAM_SIZE = SRAM_SIZE
+    parameter WIDTH = 8,
+    parameter RAM_SIZE = 512
 )( 
     input  logic                                clk, 
     input  logic                                rst, 

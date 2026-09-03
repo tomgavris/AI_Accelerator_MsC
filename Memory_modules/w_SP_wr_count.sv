@@ -1,6 +1,8 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module w_SP_wr_count (
+module w_SP_wr_count #(
+    parameter int WEIGHT_SP_SIZE = 8
+)(
     input  logic                                         clk, rst,
     // Control Signals
     input  logic                                         sp_wr_i, // From Concat/DMA

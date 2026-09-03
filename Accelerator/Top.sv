@@ -1,6 +1,24 @@
-import pe_pkg::*;
+module top #( 
+    // --- INDEPENDENT VARIABLES ---
+    // Passed in from the Chisel BlackBox
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8,
+    parameter int P_DATA_WIDTH = 16,
+    parameter int PARTITIONS = 4,
+    parameter int BATCH_SIZE = 8,
+    parameter int K_TILE = 8,
 
-module top (
+    // --- DEPENDENT VARIABLES ---
+    // Calculated automatically
+    parameter int CONC_ADD       = M / PARTITIONS,
+    parameter int SRAM_WIDTH     = CONC_ADD * N * OP * DATA_WIDTH,
+    parameter int SP_SIZE        = 2048,
+    parameter int SRAM_SIZE      = SP_SIZE / PARTITIONS,
+    parameter int WEIGHT_SP_SIZE = M,
+    parameter int ACC_SIZE       = BATCH_SIZE
+)(
     input  logic clk, rst,
 
     // RoCC control signals
@@ -126,29 +144,6 @@ module top (
 
     assign delayed_sa_acc_handshake = handshake_shift_reg[VALID_DELAY-1];
 
-    // delayed_acc_state
-    /*
-    logic [VALID_DELAY-1:0] state_shift_reg;
-    logic                   delayed_acc_state;
-
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            state_shift_reg <= '0;
-        end else begin
-            state_shift_reg[0] <= acc_state;
-
-            for (int i = 1; i < VALID_DELAY; i++) begin
-                state_shift_reg[i] <= state_shift_reg[i-1];
-            end
-        end
-    end
-
-    assign delayed_acc_state = state_shift_reg[VALID_DELAY-1];
-    */
-
-    // delayed_acc_wr_addr
-
-
     logic [VALID_DELAY-1:0][$clog2(ACC_SIZE)-1:0]  wr_shift_reg;
     logic [$clog2(ACC_SIZE)-1:0]                   delayed_acc_wr_addr;
 
@@ -204,7 +199,7 @@ module top (
     //============================
     // Module instantiation
     //============================
-    mem_fsm mem_fsm_inst (
+    mem_fsm #(.BATCH_SIZE(BATCH_SIZE), .K_TILE(K_TILE)) mem_fsm_inst (
         .clk(clk), 
         .rst(rst),
         .start_w_i(start_w), 
@@ -231,7 +226,11 @@ module top (
     );
 
 
-    dp_fsm dp_fsm_inst (
+    dp_fsm #(
+        .M(M),  
+        .BATCH_SIZE(BATCH_SIZE), 
+        .K_TILE(K_TILE)
+    ) dp_fsm_inst (
         .clk(clk), 
         .rst(rst),
         .stop_comp_i(stop_comp), 
@@ -254,7 +253,7 @@ module top (
 
     
     // Data Path Core
-    DPPE_SA DPPE_SA_inst (
+    DPPE_SA #(.M(M), .N(N), .OP(OP), .DATA_WIDTH(DATA_WIDTH), .P_DATA_WIDTH(P_DATA_WIDTH)) DPPE_SA_inst (
         .sa_a_i(skewed_data),
         .clk(clk), 
         .sa_rst(rst), 
@@ -266,7 +265,7 @@ module top (
         .sa_parsum_o(sa_results) 
     );
 
-    accumulator accumulator_inst (
+    accumulator #(.M(M), .N(N), .BATCH_SIZE(BATCH_SIZE), .DATA_WIDTH(DATA_WIDTH), .P_DATA_WIDTH(P_DATA_WIDTH)) accumulator_inst (
         .clk(clk), 
         .rst(rst), 
         .op(delayed_acc_op), 
@@ -304,7 +303,14 @@ module top (
         .AxiWriteIntf(AxiWriteIntf)
     );
     
-    activations_sp activations_sp_inst (
+    activations_sp #(
+        .N(N),
+        .M(M),
+        .OP(OP),
+        .DATA_WIDTH(DATA_WIDTH),
+        .PARTITIONS(PARTITIONS),
+        .SP_SIZE(SP_SIZE)
+        ) activations_sp_inst (
         .clk(clk), 
         .rst(rst), 
         .sp_i({PARTITIONS{sp_dma_data}}), 
@@ -318,7 +324,13 @@ module top (
         .sp_o(activations)
     );
 
-    weights_sp weights_sp_inst (
+    weights_sp #(
+        .M(M), 
+        .N(N), 
+        .OP(OP), 
+        .DATA_WIDTH(DATA_WIDTH), 
+        .PARTITIONS(PARTITIONS)
+        ) weights_sp_inst (
         .clk(clk), 
         .rst(rst), 
         .sp_i(w_sp_data), 
@@ -333,7 +345,10 @@ module top (
     );
 
     
-    a_SP_wr_count a_SP_wr_count_inst (
+    a_SP_wr_count #(
+        .PARTITIONS(PARTITIONS),
+        .SRAM_SIZE(SRAM_SIZE)
+    ) a_SP_wr_count_inst (
         .clk(clk),
         .rst(rst),
         .sp_wr_i(a_sp_wr),
@@ -342,7 +357,9 @@ module top (
         .sp_wr_en_o(sp_wr_en_onehot)
     );
 
-    w_SP_wr_count w_SP_wr_count_inst (
+    w_SP_wr_count #(
+        .WEIGHT_SP_SIZE(WEIGHT_SP_SIZE)
+    ) w_SP_wr_count_inst (
         .clk(clk),
         .rst(rst),
         .sp_wr_i(w_sp_wr),
@@ -351,7 +368,14 @@ module top (
         .sp_wr_en_o(w_sp_wr_en)
     );
 
-    Read_skew Read_skew_inst (
+    Read_skew #(
+        .PARTITIONS(PARTITIONS),
+        .M(M),
+        .SP_SIZE(SP_SIZE),
+        .CONC_ADD(CONC_ADD),
+        .SRAM_SIZE(SRAM_SIZE),
+        .WEIGHT_SP_SIZE(WEIGHT_SP_SIZE)
+    ) Read_skew_inst (
         .clk(clk), 
         .rst(rst),
         .sp_rd_i(sp_rd),     
@@ -359,7 +383,9 @@ module top (
         .sp_rd_add_o(sp_rd_add)
     );
 
-    Weight_sp_rd Weight_sp_rd_inst (
+    Weight_sp_rd #(
+        .WEIGHT_SP_SIZE(WEIGHT_SP_SIZE)
+    ) Weight_sp_rd_inst (
         .clk(clk), 
         .rst(rst),
         .clear_i(start_w_load), 
@@ -395,7 +421,12 @@ module top (
     genvar part;
     generate
         for(part = 0; part < PARTITIONS; part++) begin
-            skewing_mod skewing_mod_inst(
+            skewing_mod #(
+        .CONC_ADD(CONC_ADD),
+        .N(N),
+        .OP(OP),
+        .DATA_WIDTH(DATA_WIDTH)
+    ) skewing_mod_inst(
                 .skew_mod_i(activations[part]),
                 .clk(clk), 
                 .rst(rst),
@@ -404,7 +435,11 @@ module top (
         end
     endgenerate
 
-    deskewing_mod deskewing_mod_inst(
+    deskewing_mod #(
+        .M(M),
+        .N(N),
+        .P_DATA_WIDTH(P_DATA_WIDTH)
+    ) deskewing_mod_inst(
         .deskew_mod_i(sa_results),
         .clk(clk), 
         .rst(rst),
@@ -412,12 +447,23 @@ module top (
     );
 
     // Output Datapath 
-    Quantizer Quantizer_inst (
+    Quantizer #(
+        .N(N),
+        .M(M),
+        .DATA_WIDTH(DATA_WIDTH),
+        .P_DATA_WIDTH(P_DATA_WIDTH)
+    ) Quantizer_inst (
         .quantize_i(acc_data),
         .quantize_o(serial_i)
     );
 
-    serializer serializer_inst (
+    serializer #(
+        .M(M),
+        .N(N),
+        .DATA_WIDTH(DATA_WIDTH),
+        .IN_WIDTH(M * N * DATA_WIDTH),
+        .OUT_WIDTH(64) // Assuming your RoCC/AXI bus remains 64-bit
+    ) serializer_inst (
         .clk(clk), 
         .rst(rst),
         .valid_i(acc_valid),  
@@ -428,7 +474,9 @@ module top (
         .data_o(dma_acc_data)
     );
     
-    concat weight_concat_inst (
+    concat #(
+        .CONCAT_WIDTH(M * N * N * OP * DATA_WIDTH)
+    ) weight_concat_inst (
         .concat_i(raw_dma_data),
         .clk(clk), 
         .rst(rst),

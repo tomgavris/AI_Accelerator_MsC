@@ -1,11 +1,19 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module mem_fsm (
+module mem_fsm #(
+    parameter int BATCH_SIZE = 8,
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8,
+    parameter int K_TILE = 8
+
+)(
     input  logic clk, rst, 
     input  logic start_w_i, start_a_i,
     input  logic results_ready_i,
     input  logic dma_load_finish_i,
-    input  logic dp_busy_i,                    
+    input  logic dp_busy_i,               
 
     // RoCC-captured request parameters 
     input  logic [31:0] rocc_src_addr_i,

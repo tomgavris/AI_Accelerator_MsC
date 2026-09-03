@@ -1,4 +1,4 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
 module RoCCTran (
     input  logic        clk, rst, 

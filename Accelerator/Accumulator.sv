@@ -1,6 +1,14 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module accumulator(
+module accumulator #(
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int DATA_WIDTH = 8,
+    parameter int P_DATA_WIDTH = 16,
+    parameter int BATCH_SIZE = 8,
+
+    parameter int ACC_SIZE       = BATCH_SIZE    
+)(
       input  logic                                  clk, rst, 
       
       // Data Path FSM Interface

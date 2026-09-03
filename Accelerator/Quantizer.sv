@@ -1,6 +1,13 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module Quantizer (
+module Quantizer #(
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int DATA_WIDTH = 8,
+    parameter int P_DATA_WIDTH = 16
+
+
+)(
     input  logic signed [(M*N*P_DATA_WIDTH)-1:0] quantize_i,
     output logic signed [(M*N*DATA_WIDTH)-1:0]   quantize_o
 );

@@ -1,8 +1,11 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
 module serializer #(
-    parameter IN_WIDTH  = M * N * DATA_WIDTH,
-    parameter OUT_WIDTH = 64
+    parameter int M = 8,
+    parameter int N = 4,
+    parameter int DATA_WIDTH = 8,
+    parameter int IN_WIDTH  = M * N * DATA_WIDTH,
+    parameter int OUT_WIDTH = 64
 )(
     input  logic                 clk, rst,
     

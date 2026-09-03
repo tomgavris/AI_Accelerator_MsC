@@ -1,6 +1,11 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module skewing_mod (
+module skewing_mod #(
+    parameter int CONC_ADD = 2,
+    parameter int N = 4,
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8
+)(
     input  logic signed [CONC_ADD-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0] skew_mod_i,
     input  logic                                                      clk, rst, 
     output logic signed [CONC_ADD-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0] skew_mod_o
@@ -9,7 +14,7 @@ module skewing_mod (
     genvar rows;
     generate
         for (rows = 0; rows < CONC_ADD ; rows++) begin
-            FF_chain  #(.DELAY(rows)) FF_chain_inst(
+            FF_chain  #(.DELAY(rows), .WIDTH(N * OP * DATA_WIDTH)) FF_chain_inst(
                 .ffc_in(skew_mod_i[rows]),
                 .clk(clk),
                 .rst(rst),
@@ -19,7 +24,11 @@ module skewing_mod (
     endgenerate
 endmodule
 
-module deskewing_mod (
+module deskewing_mod #(
+    parameter int M = 8,
+    parameter int N = 4,
+    parameter int P_DATA_WIDTH = 16
+)(
     input  logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0] deskew_mod_i,
     input  logic                                         clk, rst, 
     output logic signed [M-1:0][N-1:0][P_DATA_WIDTH-1:0] deskew_mod_o
@@ -45,7 +54,7 @@ endmodule
 
 
 module FF_chain #(
-    parameter WIDTH = N*OP*DATA_WIDTH, 
+    parameter WIDTH = 8, 
     parameter DELAY = 2
 )(
     input  logic [WIDTH-1:0] ffc_in,

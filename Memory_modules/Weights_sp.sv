@@ -1,6 +1,13 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module weights_sp (
+module weights_sp #(
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8,
+    parameter int WEIGHT_SP_SIZE = M,
+    parameter int PARTITIONS = 4    
+)(
     input  logic signed [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]        sp_i,
     input  logic                                                             clk, rst,
     input  logic                                                             sp_rd_i, 

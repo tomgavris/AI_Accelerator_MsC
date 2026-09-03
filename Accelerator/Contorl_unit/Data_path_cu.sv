@@ -1,6 +1,11 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module dp_fsm (
+module dp_fsm #(
+    parameter int M  = 8,
+    parameter int BATCH_SIZE = 8,
+    parameter int K_TILE = 8
+
+)(
     input  logic                               clk, rst, 
     input  logic                               stop_comp_i, cu_hold_i,            // RoCC Tran. signals
     input  logic                               start_w_load_i, start_comp_i,      // Mem FSM signal

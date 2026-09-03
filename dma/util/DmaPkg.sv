@@ -1,6 +1,6 @@
 package DmaPkg;
 
-    import pe_pkg::*;
+    // import pe_pkg::*;
     //
     // Read/Write Engine Command Format
     //

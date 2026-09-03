@@ -1,6 +1,10 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module DP (
+module DP #(
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8,
+    parameter int P_DATA_WIDTH = 16    
+)(
     input  logic signed [OP-1:0][DATA_WIDTH-1:0]  a_i,
     input  logic signed [OP-1:0][DATA_WIDTH-1:0]  w_i,
     input  logic signed [P_DATA_WIDTH-1:0]        parsum_i,

@@ -1,6 +1,16 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module activations_sp (
+module activations_sp #(
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8,
+    parameter int PARTITIONS = 4,
+    parameter int SP_SIZE = 2048,
+    
+    parameter int CONC_ADD = M / PARTITIONS,
+    parameter int SRAM_SIZE = SP_SIZE / PARTITIONS  
+)(
     input  logic signed [PARTITIONS-1:0][CONC_ADD-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]        sp_i,
     input  logic                                                                             clk, rst,
     input  logic        [PARTITIONS-1:0]                                                     sp_rd_i, 

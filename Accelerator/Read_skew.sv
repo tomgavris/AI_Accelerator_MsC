@@ -1,7 +1,14 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
 
-module Read_skew (
+module Read_skew #(
+    parameter int PARTITIONS = 4,
+    parameter int M = 8,
+    parameter int SP_SIZE = 2048,
+    parameter int CONC_ADD       = M / PARTITIONS,
+    parameter int SRAM_SIZE      = SP_SIZE / PARTITIONS,
+    parameter int WEIGHT_SP_SIZE = M
+)(
     input  logic                                          clk, rst,
     input  logic                                          sp_rd_i,     // from mem_fsm
     output logic [PARTITIONS-1:0]                         sp_rd_o,
@@ -10,7 +17,11 @@ module Read_skew (
     genvar part;
     generate
         for (part = 0; part < PARTITIONS; part++) begin : g_part
-            part_rd_gen #(.PART_ID(part)) part_rd_gen_inst (
+            part_rd_gen #(
+                .PART_ID(part), 
+                .SRAM_SIZE(SRAM_SIZE),
+                .CONC_ADD(CONC_ADD)
+                ) part_rd_gen_inst (
                 .clk(clk), .rst(rst || clear_i), .sp_rd_i(sp_rd_i),
                 .sp_rd_o(sp_rd_o[part]), .sp_rd_add_o(sp_rd_add_o[part])
             );
@@ -18,7 +29,9 @@ module Read_skew (
     endgenerate
 endmodule
 
-module Weight_sp_rd (
+module Weight_sp_rd #(
+    parameter int WEIGHT_SP_SIZE = 8
+)(
     input  logic                                clk, rst,
     input  logic                                sp_rd_i,     // from mem_fsm
     input  logic                                clear_i,
@@ -49,7 +62,12 @@ endmodule
     
 
 module part_rd_gen #(
-    parameter int PART_ID = 0
+    parameter int PART_ID = 0,
+    parameter int PARTITIONS = 4,
+    parameter int M = 8,
+    parameter int SP_SIZE = 2048,
+    parameter int CONC_ADD       = M / PARTITIONS,
+    parameter int SRAM_SIZE      = SP_SIZE / PARTITIONS
 )(
     input  logic                          clk, rst,
     input  logic                          sp_rd_i,      

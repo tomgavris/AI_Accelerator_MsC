@@ -1,8 +1,8 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
 module double_buffer # (
-   parameter DB_WIDTH = DATA_WIDTH,
-   parameter DB_SIZE =  SRAM_SIZE
+   parameter DB_WIDTH = 8,
+   parameter DB_SIZE =  512
 )(
     input  logic signed [DB_WIDTH-1:0]   db_i,
     input  logic [$clog2(DB_SIZE)-1:0]   db_wr_add, db_rd_add, 

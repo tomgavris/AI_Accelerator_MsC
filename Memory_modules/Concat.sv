@@ -1,7 +1,7 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
 module concat #(
-    parameter CONCAT_WIDTH = M*N*N*OP*DATA_WIDTH
+    parameter CONCAT_WIDTH = 1024
     )(
     input  logic signed [63:0]              concat_i,
     input  logic                            clk, rst, enable, 

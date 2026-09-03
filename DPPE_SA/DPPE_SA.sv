@@ -1,6 +1,12 @@
-import pe_pkg::*;
+// import pe_pkg::*;
 
-module DPPE_SA (
+module DPPE_SA #(
+    parameter int N = 4,
+    parameter int M = 8,
+    parameter int OP = 2,
+    parameter int DATA_WIDTH = 8,
+    parameter int P_DATA_WIDTH = 16    
+)(
     input  logic signed [M-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]                sa_a_i,
     input  logic                                                              clk, sa_rst, sa_wr_e, sa_comp_e, 
     input  logic signed [M-1:0][N-1:0][N-1:0][OP-1:0][DATA_WIDTH-1:0]         sa_w_i,
@@ -72,8 +78,12 @@ module DPPE_SA (
                 DPPE #(
                     .FIRST_ROW(i == 0),
                     .IS_LAST_X(j == M-1),
-                    .IS_LAST_Y(i == M-1),
-                    .IS_LAST_ALL(i == M-1 && j == M-1)
+                    .IS_LAST_Y(i == M-1), 
+                    .IS_LAST_ALL(i == M-1 && j == M-1),
+                    .N(N), 
+                    .OP(OP), 
+                    .DATA_WIDTH(DATA_WIDTH), 
+                    .P_DATA_WIDTH(P_DATA_WIDTH)
                 ) DPPE_inst (
                 .dppe_a_i(a_wires[i][j]),
                 .dppe_w_i(w_wires[i][j]),
